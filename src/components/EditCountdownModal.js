@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,25 +8,35 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Switch,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CountdownContext } from '../context/CountdownContext';
 import { TaskType, Priority } from '../types';
 
-export default function AddCountdownModal({ visible, onClose }) {
+export default function EditCountdownModal({ visible, onClose, countdown }) {
   const { colors } = useTheme();
-  const { folders, addCountdown } = useContext(CountdownContext);
+  const { folders, updateCountdown } = useContext(CountdownContext);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState('none');
+  const [selectedFolder, setSelectedFolder] = useState('');
   const [dueDate, setDueDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [taskType, setTaskType] = useState(TaskType.ONE_TIME);
   const [priority, setPriority] = useState(Priority.MEDIUM);
+
+  useEffect(() => {
+    if (countdown) {
+      setTitle(countdown.title || '');
+      setDescription(countdown.description || '');
+      setSelectedFolder(countdown.folder || 'none');
+      setDueDate(new Date(countdown.dueDate));
+      setTaskType(countdown.type || TaskType.ONE_TIME);
+      setPriority(countdown.priority || Priority.MEDIUM);
+    }
+  }, [countdown]);
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -34,28 +44,20 @@ export default function AddCountdownModal({ visible, onClose }) {
       return;
     }
 
-    const newCountdown = {
-      id: Date.now().toString(),
+    const updates = {
       title: title.trim(),
       description: description.trim(),
       folder: selectedFolder === 'none' ? null : selectedFolder,
       dueDate: dueDate.toISOString(),
       type: taskType,
       priority,
-      isCompleted: false,
     };
 
-    addCountdown(newCountdown);
+    updateCountdown(countdown.id, updates);
     handleClose();
   };
 
   const handleClose = () => {
-    setTitle('');
-    setDescription('');
-    setSelectedFolder('none');
-    setDueDate(new Date());
-    setTaskType(TaskType.ONE_TIME);
-    setPriority(Priority.MEDIUM);
     onClose();
   };
 
@@ -91,6 +93,11 @@ export default function AddCountdownModal({ visible, onClose }) {
     });
   };
 
+  const allFolders = [
+    { id: 'none', name: '无分类', color: 'gray' },
+    ...folders
+  ];
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -98,13 +105,13 @@ export default function AddCountdownModal({ visible, onClose }) {
           <TouchableOpacity onPress={handleClose}>
             <Text style={[styles.cancelButton, { color: colors.primary }]}>取消</Text>
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>添加倒计时</Text>
+          <Text style={[styles.title, { color: colors.text }]}>编辑倒计时</Text>
           <TouchableOpacity onPress={handleSave}>
             <Text style={[styles.saveButton, { color: colors.primary }]}>保存</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
             <Text style={[styles.label, { color: colors.text }]}>标题 *</Text>
             <TextInput
@@ -132,22 +139,7 @@ export default function AddCountdownModal({ visible, onClose }) {
           <View style={styles.section}>
             <Text style={[styles.label, { color: colors.text }]}>分类</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.folderSelector}>
-              <TouchableOpacity
-                style={[
-                  styles.folderOption,
-                  { backgroundColor: selectedFolder === 'none' ? colors.primary : colors.card },
-                  { borderColor: colors.border }
-                ]}
-                onPress={() => setSelectedFolder('none')}
-              >
-                <Text style={[
-                  styles.folderOptionText,
-                  { color: selectedFolder === 'none' ? '#fff' : colors.text }
-                ]}>
-                  无分类
-                </Text>
-              </TouchableOpacity>
-              {folders.map((folder) => (
+              {allFolders.map((folder) => (
                 <TouchableOpacity
                   key={folder.id}
                   style={[
@@ -168,28 +160,30 @@ export default function AddCountdownModal({ visible, onClose }) {
             </ScrollView>
           </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>截止日期</Text>
-            <TouchableOpacity
-              style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={[styles.dateButtonText, { color: colors.text }]}>
-                {formatDate(dueDate)}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <View style={styles.dateTimeRow}>
+            <View style={[styles.dateTimeSection, { marginRight: 8 }]}>
+              <Text style={[styles.label, { color: colors.text }]}>截止日期</Text>
+              <TouchableOpacity
+                style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                  {formatDate(dueDate)}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>截止时间</Text>
-            <TouchableOpacity
-              style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Text style={[styles.dateButtonText, { color: colors.text }]}>
-                {formatTime(dueDate)}
-              </Text>
-            </TouchableOpacity>
+            <View style={[styles.dateTimeSection, { marginLeft: 8 }]}>
+              <Text style={[styles.label, { color: colors.text }]}>截止时间</Text>
+              <TouchableOpacity
+                style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                  {formatTime(dueDate)}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.section}>
@@ -315,16 +309,16 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
   },
   textArea: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
-    minHeight: 80,
+    minHeight: 100,
     textAlignVertical: 'top',
   },
   folderSelector: {
@@ -332,7 +326,7 @@ const styles = StyleSheet.create({
   },
   folderOption: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
     marginRight: 8,
@@ -341,13 +335,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  dateTimeRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+  },
+  dateTimeSection: {
+    flex: 1,
+  },
   dateButton: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 16,
   },
   dateButtonText: {
     fontSize: 16,
+    textAlign: 'center',
   },
   typeSelector: {
     flexDirection: 'row',
@@ -357,7 +359,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
   },
@@ -373,7 +375,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
   },
