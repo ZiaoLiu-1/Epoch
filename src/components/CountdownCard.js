@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { calculateTimeRemaining, formatTimeDisplay, formatDate, formatTime, isUpcoming } from '../utils/dateUtils';
 import { CountdownContext } from '../context/CountdownContext';
+import { TaskType, Priority } from '../types';
 
 const folderColors = {
   emerald: '#10b981',

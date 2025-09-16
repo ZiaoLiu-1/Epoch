@@ -17,8 +17,8 @@ const defaultCountdowns = [
     description: 'Complete the first programming assignment for CSC367',
     folder: 'csc367',
     dueDate: '2024-12-20T23:59:00',
-    type: TaskType.ONE_TIME,
-    priority: Priority.HIGH,
+    type: 'one-time',
+    priority: 'high',
     isCompleted: false,
   },
   {
@@ -27,8 +27,8 @@ const defaultCountdowns = [
     description: 'Study for the midterm examination',
     folder: 'csc367',
     dueDate: '2024-12-25T14:00:00',
-    type: TaskType.ONE_TIME,
-    priority: Priority.HIGH,
+    type: 'one-time',
+    priority: 'high',
     isCompleted: false,
   },
   {
@@ -36,8 +36,8 @@ const defaultCountdowns = [
     title: 'Project Presentation',
     folder: 'csc387',
     dueDate: '2024-12-22T10:00:00',
-    type: TaskType.ONE_TIME,
-    priority: Priority.MEDIUM,
+    type: 'one-time',
+    priority: 'medium',
     isCompleted: false,
   },
   {
@@ -46,8 +46,8 @@ const defaultCountdowns = [
     description: 'Team standup meeting every Monday',
     folder: 'personal',
     dueDate: '2024-12-23T09:00:00',
-    type: TaskType.RECURRING,
-    priority: Priority.LOW,
+    type: 'recurring',
+    priority: 'low',
     isCompleted: false,
   },
 ];
