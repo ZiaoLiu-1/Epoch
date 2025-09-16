@@ -91,11 +91,68 @@ export const CountdownProvider = ({ children }) => {
       }
     };
 
-    saveData();
+    if (folders.length > 0 || countdowns.length > 0) {
+      saveData();
+    }
   }, [folders, countdowns]);
 
+  // 倒计时相关操作
+  const addCountdown = (countdown) => {
+    setCountdowns(prev => [...prev, countdown]);
+  };
+
+  const updateCountdown = (id, updates) => {
+    setCountdowns(prev => prev.map(countdown => 
+      countdown.id === id ? { ...countdown, ...updates } : countdown
+    ));
+  };
+
+  const deleteCountdown = (id) => {
+    setCountdowns(prev => prev.filter(countdown => countdown.id !== id));
+  };
+
+  const toggleCountdownComplete = (id) => {
+    setCountdowns(prev => prev.map(countdown => 
+      countdown.id === id ? { ...countdown, isCompleted: !countdown.isCompleted } : countdown
+    ));
+  };
+
+  // 文件夹相关操作
+  const addFolder = (folder) => {
+    setFolders(prev => [...prev, folder]);
+  };
+
+  const updateFolder = (id, updates) => {
+    setFolders(prev => prev.map(folder => 
+      folder.id === id ? { ...folder, ...updates } : folder
+    ));
+  };
+
+  const deleteFolder = (id) => {
+    // 删除文件夹时，将该文件夹下的倒计时移动到默认文件夹
+    const defaultFolderId = folders.find(f => f.name === '个人事务')?.id || folders[0]?.id;
+    if (defaultFolderId) {
+      setCountdowns(prev => prev.map(countdown => 
+        countdown.folder === id ? { ...countdown, folder: defaultFolderId } : countdown
+      ));
+    }
+    setFolders(prev => prev.filter(folder => folder.id !== id));
+  };
+
   return (
-    <CountdownContext.Provider value={{ folders, setFolders, countdowns, setCountdowns }}>
+    <CountdownContext.Provider value={{ 
+      folders, 
+      setFolders, 
+      countdowns, 
+      setCountdowns,
+      addCountdown,
+      updateCountdown,
+      deleteCountdown,
+      toggleCountdownComplete,
+      addFolder,
+      updateFolder,
+      deleteFolder,
+    }}>
       {children}
     </CountdownContext.Provider>
   );
