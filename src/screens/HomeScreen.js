@@ -1,6 +1,8 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useTheme } from '@react-navigation/native';
+import React, { useContext, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Dimensions } from 'react-native';
+import { State } from 'react-native-gesture-handler';
+import { useThemeContext } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { CountdownContext } from '../context/CountdownContext';
 import CountdownCard from '../components/CountdownCard';
 import FolderItem from '../components/FolderItem';
@@ -9,8 +11,11 @@ import AddFolderModal from '../components/AddFolderModal';
 import EditCountdownModal from '../components/EditCountdownModal';
 import { TaskType } from '../types';
 
+const { width: screenWidth } = Dimensions.get('window');
+
 export default function HomeScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { theme } = useThemeContext();
+  const { t } = useLanguage();
   const { countdowns, folders, deleteCountdown, toggleCountdownComplete } = useContext(CountdownContext);
   const [showCountdownModal, setShowCountdownModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -22,52 +27,81 @@ export default function HomeScreen({ navigation }) {
   const oneTimeCountdowns = countdowns.filter(c => c.type === TaskType.ONE_TIME);
   const recurringCountdowns = countdowns.filter(c => c.type === TaskType.RECURRING);
 
-  const handleCountdownPress = (countdown) => {
+  const handleCountdownPress = useCallback((countdown) => {
     if (isSelectionMode) {
       toggleSelection(countdown.id);
     } else {
       setEditingCountdown(countdown);
       setShowEditModal(true);
     }
-  };
+  }, [isSelectionMode]);
 
-  const handleCountdownLongPress = (countdown) => {
+  const handleCountdownLongPress = useCallback((countdown) => {
     if (!isSelectionMode) {
       setIsSelectionMode(true);
       setSelectedCountdowns(new Set([countdown.id]));
     }
-  };
+  }, [isSelectionMode]);
 
-  const toggleSelection = (countdownId) => {
-    const newSelected = new Set(selectedCountdowns);
-    if (newSelected.has(countdownId)) {
-      newSelected.delete(countdownId);
-    } else {
-      newSelected.add(countdownId);
+  const handlePanGesture = useCallback((event, countdown) => {
+    if (!isSelectionMode) return;
+
+    const { state, x, y } = event.nativeEvent;
+    
+    if (state === State.ACTIVE) {
+      // 计算当前手势位置对应的卡片
+      const cardWidth = (screenWidth - 48) / 2; // 考虑padding和margin
+      const cardHeight = 140;
+      const cardsPerRow = 2;
+      
+      // 简单的碰撞检测逻辑
+      const allCountdowns = [...oneTimeCountdowns, ...recurringCountdowns];
+      allCountdowns.forEach((item, index) => {
+        const row = Math.floor(index / cardsPerRow);
+        const col = index % cardsPerRow;
+        const cardX = col * (cardWidth + 16) + 24;
+        const cardY = row * (cardHeight + 16) + 200; // 估算的起始Y位置
+        
+        if (x >= cardX && x <= cardX + cardWidth && 
+            y >= cardY && y <= cardY + cardHeight) {
+          toggleSelection(item.id);
+        }
+      });
     }
-    setSelectedCountdowns(newSelected);
-  };
+  }, [isSelectionMode, oneTimeCountdowns, recurringCountdowns]);
 
-  const exitSelectionMode = () => {
+  const toggleSelection = useCallback((countdownId) => {
+    setSelectedCountdowns(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(countdownId)) {
+        newSelected.delete(countdownId);
+      } else {
+        newSelected.add(countdownId);
+      }
+      return newSelected;
+    });
+  }, []);
+
+  const exitSelectionMode = useCallback(() => {
     setIsSelectionMode(false);
     setSelectedCountdowns(new Set());
-  };
+  }, []);
 
-  const handleBatchComplete = () => {
+  const handleBatchComplete = useCallback(() => {
     selectedCountdowns.forEach(id => {
       toggleCountdownComplete(id);
     });
     exitSelectionMode();
-  };
+  }, [selectedCountdowns, toggleCountdownComplete, exitSelectionMode]);
 
-  const handleBatchDelete = () => {
+  const handleBatchDelete = useCallback(() => {
     Alert.alert(
-      '确认删除',
-      `确定要删除选中的 ${selectedCountdowns.size} 个倒计时吗？`,
+      t('confirmDelete'),
+      t('confirmBatchDelete', { count: selectedCountdowns.size }),
       [
-        { text: '取消', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: '删除',
+          text: t('delete'),
           style: 'destructive',
           onPress: () => {
             selectedCountdowns.forEach(id => {
@@ -78,47 +112,66 @@ export default function HomeScreen({ navigation }) {
         },
       ]
     );
-  };
+  }, [selectedCountdowns, deleteCountdown, exitSelectionMode, t]);
 
-  const getFolderColor = (folderId) => {
+  const getFolderColor = useCallback((folderId) => {
     if (!folderId) return 'gray';
     return folders.find(f => f.id === folderId)?.color || 'gray';
-  };
+  }, [folders]);
 
-  const renderCountdownSection = (title, data) => (
+  const renderCountdownItem = useCallback(({ item: countdown }) => (
+    <CountdownCard 
+      countdown={countdown} 
+      folderColor={getFolderColor(countdown.folder)}
+      onPress={handleCountdownPress}
+      onLongPress={handleCountdownLongPress}
+      onPanGesture={handlePanGesture}
+      isSelectionMode={isSelectionMode}
+      isSelected={selectedCountdowns.has(countdown.id)}
+    />
+  ), [getFolderColor, handleCountdownPress, handleCountdownLongPress, handlePanGesture, isSelectionMode, selectedCountdowns]);
+
+  const renderCountdownSection = useCallback((title, data) => (
     <View style={styles.section}>
-      <Text style={[styles.subSectionTitle, { color: colors.text }]}>
+      <Text style={[styles.subSectionTitle, { color: theme.colors.text }]}>
         {title}
       </Text>
       <FlatList
         data={data}
-        renderItem={({ item: countdown }) => (
-          <CountdownCard 
-            countdown={countdown} 
-            folderColor={getFolderColor(countdown.folder)}
-            onPress={handleCountdownPress}
-            onLongPress={handleCountdownLongPress}
-            isSelectionMode={isSelectionMode}
-            isSelected={selectedCountdowns.has(countdown.id)}
-          />
-        )}
-        keyExtractor={countdown => countdown.id}
+        renderItem={renderCountdownItem}
+        keyExtractor={item => item.id}
         numColumns={2}
         columnWrapperStyle={data.length > 1 ? styles.row : null}
         scrollEnabled={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        getItemLayout={(data, index) => ({
+          length: 140,
+          offset: 140 * Math.floor(index / 2),
+          index,
+        })}
       />
     </View>
-  );
+  ), [theme.colors.text, renderCountdownItem]);
 
-  const renderHeader = () => (
+  const renderHeader = useCallback(() => (
     <View>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>文件夹</Text>
+      <View style={styles.topBar}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('folders')}</Text>
+          <TouchableOpacity 
+            style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => setShowFolderModal(true)}
+          >
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity 
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={() => setShowFolderModal(true)}
+          style={[styles.settingsButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+          onPress={() => navigation.navigate('Settings')}
         >
-          <Text style={styles.addButtonText}>+</Text>
+          <Text style={[styles.settingsButtonText, { color: theme.colors.text }]}>⚙️</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -134,52 +187,62 @@ export default function HomeScreen({ navigation }) {
         showsHorizontalScrollIndicator={false}
         style={styles.folderList}
       />
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>所有倒计时</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('allCountdowns')}</Text>
     </View>
-  );
+  ), [theme.colors, t, folders, navigation]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlatList
         data={[
-          { key: 'one-time', title: '一次性任务', data: oneTimeCountdowns },
-          { key: 'recurring', title: '循环任务', data: recurringCountdowns }
+          { key: 'one-time', title: t('oneTimeTasks'), data: oneTimeCountdowns },
+          { key: 'recurring', title: t('recurringTasks'), data: recurringCountdowns }
         ]}
         renderItem={({ item }) => renderCountdownSection(item.title, item.data)}
         keyExtractor={item => item.key}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={10}
       />
       
-      {/* 批量操作工具栏 */}
+      {/* 优化的批量操作工具栏 */}
       {isSelectionMode && (
-        <View style={[styles.selectionToolbar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-          <TouchableOpacity 
-            style={[styles.toolbarButton, { backgroundColor: colors.primary }]}
-            onPress={handleBatchComplete}
-          >
-            <Text style={styles.toolbarButtonText}>完成</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.toolbarButton, { backgroundColor: '#ef4444' }]}
-            onPress={handleBatchDelete}
-          >
-            <Text style={styles.toolbarButtonText}>删除</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.toolbarButton, { backgroundColor: colors.border }]}
-            onPress={exitSelectionMode}
-          >
-            <Text style={styles.toolbarButtonText}>取消</Text>
-          </TouchableOpacity>
+        <View style={[styles.selectionToolbar, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border }]}>
+          <View style={styles.toolbarContent}>
+            <Text style={[styles.selectionCount, { color: theme.colors.text }]}>
+              {t('selected', { count: selectedCountdowns.size })} {selectedCountdowns.size}
+            </Text>
+            <View style={styles.toolbarButtons}>
+              <TouchableOpacity 
+                style={[styles.toolbarButton, styles.completeButton]}
+                onPress={handleBatchComplete}
+              >
+                <Text style={styles.toolbarButtonText}>{t('complete')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toolbarButton, styles.deleteButton]}
+                onPress={handleBatchDelete}
+              >
+                <Text style={styles.toolbarButtonText}>{t('delete')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toolbarButton, styles.cancelButton, { backgroundColor: theme.colors.border }]}
+                onPress={exitSelectionMode}
+              >
+                <Text style={styles.toolbarButtonText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       )}
       
       {/* 浮动添加按钮 */}
       {!isSelectionMode && (
         <TouchableOpacity 
-          style={[styles.fab, { backgroundColor: colors.primary }]}
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
           onPress={() => setShowCountdownModal(true)}
         >
           <Text style={styles.fabText}>+</Text>
@@ -215,15 +278,21 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
-  sectionHeader: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginRight: 12,
   },
   subSectionTitle: {
     fontSize: 18,
@@ -250,6 +319,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  settingsButtonText: {
+    fontSize: 18,
+  },
   fab: {
     position: 'absolute',
     right: 20,
@@ -275,9 +355,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 16,
     borderTopWidth: 1,
     elevation: 8,
     shadowColor: '#000',
@@ -285,12 +362,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  toolbarContent: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  selectionCount: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  toolbarButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
   toolbarButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 20,
-    minWidth: 80,
+    minWidth: 70,
     alignItems: 'center',
+  },
+  completeButton: {
+    backgroundColor: '#10b981',
+  },
+  deleteButton: {
+    backgroundColor: '#ef4444',
+  },
+  cancelButton: {
+    // backgroundColor will be set dynamically
   },
   toolbarButtonText: {
     color: '#fff',

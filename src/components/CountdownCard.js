@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useTheme } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, PanGestureHandler, State } from 'react-native';
+import { useThemeContext } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { calculateTimeRemaining, formatTimeDisplay, formatDate, formatTime, isUpcoming } from '../utils/dateUtils';
 import { CountdownContext } from '../context/CountdownContext';
 import { TaskType, Priority } from '../types';
@@ -16,8 +17,9 @@ const folderColors = {
   gray: '#6b7280',
 };
 
-export default function CountdownCard({ countdown, folderColor, onPress, onLongPress, isSelectionMode, isSelected }) {
-  const { colors } = useTheme();
+export default function CountdownCard({ countdown, folderColor, onPress, onLongPress, isSelectionMode, isSelected, onPanGesture }) {
+  const { theme } = useThemeContext();
+  const { t } = useLanguage();
   const { deleteCountdown, toggleCountdownComplete } = useContext(CountdownContext);
   const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining(countdown.dueDate));
 
@@ -31,7 +33,7 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
 
   const getTimeDisplayColor = () => {
     if (countdown.isCompleted) {
-      return colors.border;
+      return theme.colors.border;
     }
     if (timeRemaining.isOverdue) {
       return '#ef4444';
@@ -39,7 +41,7 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
     if (isUpcoming(countdown.dueDate)) {
       return '#f59e0b';
     }
-    return colors.text;
+    return theme.colors.text;
   };
 
   const getPriorityColor = () => {
@@ -51,28 +53,40 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
       case Priority.LOW:
         return '#10b981';
       default:
-        return colors.border;
+        return theme.colors.border;
     }
   };
 
-  return (
+  const handlePanGestureEvent = (event) => {
+    if (isSelectionMode && onPanGesture) {
+      onPanGesture(event, countdown);
+    }
+  };
+
+  const cardContent = (
     <TouchableOpacity 
       style={[
         styles.card, 
-        { backgroundColor: colors.card, shadowColor: colors.shadow },
+        { backgroundColor: theme.colors.card, shadowColor: theme.colors.shadow },
         countdown.isCompleted && styles.completedCard,
-        isSelected && styles.selectedCard,
+        isSelected && [styles.selectedCard, { borderColor: theme.colors.primary }],
         isSelectionMode && styles.selectionModeCard
       ]}
       onPress={() => onPress && onPress(countdown)}
       onLongPress={() => onLongPress && onLongPress(countdown)}
       delayLongPress={500}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
       <View style={[styles.colorBar, { backgroundColor: folderColors[folderColor] || folderColors.gray }]} />
       
       {isSelectionMode && (
-        <View style={[styles.selectionIndicator, { backgroundColor: isSelected ? colors.primary : 'transparent', borderColor: colors.border }]}>
+        <View style={[
+          styles.selectionIndicator, 
+          { 
+            backgroundColor: isSelected ? theme.colors.primary : 'transparent', 
+            borderColor: isSelected ? theme.colors.primary : theme.colors.border 
+          }
+        ]}>
           {isSelected && <Text style={styles.checkmark}>✓</Text>}
         </View>
       )}
@@ -81,7 +95,7 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
         <View style={styles.titleRow}>
           <Text style={[
             styles.title, 
-            { color: colors.text },
+            { color: theme.colors.text },
             countdown.isCompleted && styles.completedText
           ]} numberOfLines={2}>
             {countdown.title}
@@ -93,24 +107,39 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
           {formatTimeDisplay(timeRemaining, countdown.isCompleted)}
         </Text>
         
-        <Text style={[styles.date, { color: colors.border }]}>
+        <Text style={[styles.date, { color: theme.colors.border }]}>
           {formatDate(countdown.dueDate)} {formatTime(countdown.dueDate)}
         </Text>
         
         {countdown.description && (
-          <Text style={[styles.description, { color: colors.border }]} numberOfLines={2}>
+          <Text style={[styles.description, { color: theme.colors.border }]} numberOfLines={2}>
             {countdown.description}
           </Text>
         )}
         
         <View style={styles.footer}>
-          <Text style={[styles.taskType, { color: colors.border }]}>
-            {countdown.type === TaskType.RECURRING ? '循环' : '一次性'}
+          <Text style={[styles.taskType, { color: theme.colors.border }]}>
+            {countdown.type === TaskType.RECURRING ? t('recurring') : t('oneTime')}
           </Text>
         </View>
       </View>
     </TouchableOpacity>
   );
+
+  if (isSelectionMode && onPanGesture) {
+    return (
+      <PanGestureHandler
+        onGestureEvent={handlePanGestureEvent}
+        onHandlerStateChange={handlePanGestureEvent}
+      >
+        <View>
+          {cardContent}
+        </View>
+      </PanGestureHandler>
+    );
+  }
+
+  return cardContent;
 }
 
 const styles = StyleSheet.create({
@@ -145,15 +174,15 @@ const styles = StyleSheet.create({
   },
   selectionIndicator: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 12,
+    right: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1,
+    zIndex: 10,
   },
   checkmark: {
     color: '#fff',
