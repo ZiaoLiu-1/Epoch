@@ -18,7 +18,12 @@
     "android": {
       "package": "com.yourcompany.countdownapp",
       "compileSdkVersion": 35,
-      "targetSdkVersion": 35
+      "targetSdkVersion": 35,
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE"
+      ]
     },
     "web": {
       "bundler": "metro"
@@ -35,6 +40,13 @@
           "ios": {
             "deploymentTarget": "15.1"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff"
         }
       ]
     ]
