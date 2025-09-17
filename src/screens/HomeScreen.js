@@ -183,11 +183,6 @@ export default function HomeScreen({ navigation }) {
   };
 
   const renderHeader = useCallback(() => {
-    // 调试日志
-    console.log('All folders:', folders);
-    console.log('System folders:', folders.filter(f => f.isSystem));
-    console.log('User folders:', folders.filter(f => !f.isSystem));
-    
     return (
     <>
       <View style={styles.topBar}>

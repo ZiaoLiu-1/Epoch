@@ -112,10 +112,12 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
           {formatDate(countdown.dueDate)} {formatTime(countdown.dueDate)}
         </Text>
         
-        {countdown.description && (
+        {countdown.description ? (
           <Text style={theme.dark ? styles.descriptionDark : styles.description} numberOfLines={2}>
             {countdown.description}
           </Text>
+        ) : (
+          <View style={styles.descriptionPlaceholder} />
         )}
         
         <View style={styles.footer}>
@@ -153,7 +155,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    minHeight: 140,
+    height: 160, // 固定高度确保一致性
     overflow: 'hidden',
   },
   completedCard: {
@@ -194,19 +196,20 @@ const styles = StyleSheet.create({
     padding: 20,
     marginLeft: 6,
     flex: 1,
+    justifyContent: 'space-between', // 确保内容均匀分布
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8, // 减少间距
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     flex: 1,
     marginRight: 12,
-    lineHeight: 24,
+    lineHeight: 22, // 固定行高
   },
   completedText: {
     textDecorationLine: 'line-through',
@@ -215,41 +218,51 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginTop: 6,
+    marginTop: 4,
   },
   time: {
-    fontSize: 20,
+    fontSize: 18, // 统一字体大小
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 6,
+    lineHeight: 22, // 固定行高
   },
   date: {
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: 6,
     opacity: 0.7,
+    lineHeight: 18, // 固定行高
   },
   description: {
     fontSize: 14,
     color: '#9ca3af',
-    marginBottom: 12,
-    lineHeight: 20,
+    marginBottom: 8,
+    lineHeight: 18, // 固定行高
+    height: 36, // 固定高度，最多显示2行
   },
   descriptionDark: {
     fontSize: 14,
     color: '#d1d5db',
-    marginBottom: 12,
-    lineHeight: 20,
+    marginBottom: 8,
+    lineHeight: 18, // 固定行高
+    height: 36, // 固定高度，最多显示2行
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 'auto',
+    height: 20, // 固定底部高度
+  },
+  descriptionPlaceholder: {
+    height: 36, // 与描述文字相同的高度
+    marginBottom: 8,
   },
   taskType: {
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    lineHeight: 16, // 固定行高
   },
 });
 
