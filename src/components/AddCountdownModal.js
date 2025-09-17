@@ -22,7 +22,8 @@ export default function AddCountdownModal({ visible, onClose }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('none');
-  const [dueDate, setDueDate] = useState(new Date());
+  const [dueDate, setDueDate] = useState(null);
+  const [hasDueDate, setHasDueDate] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [taskType, setTaskType] = useState(TaskType.ONE_TIME);
@@ -39,7 +40,7 @@ export default function AddCountdownModal({ visible, onClose }) {
       title: title.trim(),
       description: description.trim(),
       folder: selectedFolder === 'none' ? null : selectedFolder,
-      dueDate: dueDate.toISOString(),
+      dueDate: hasDueDate && dueDate ? dueDate.toISOString() : null,
       type: taskType,
       priority,
       isCompleted: false,
@@ -53,7 +54,8 @@ export default function AddCountdownModal({ visible, onClose }) {
     setTitle('');
     setDescription('');
     setSelectedFolder('none');
-    setDueDate(new Date());
+    setDueDate(null);
+    setHasDueDate(false);
     setTaskType(TaskType.ONE_TIME);
     setPriority(Priority.MEDIUM);
     onClose();
@@ -62,16 +64,29 @@ export default function AddCountdownModal({ visible, onClose }) {
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      setDueDate(selectedDate);
+      if (!dueDate) {
+        // 如果之前没有设置日期，创建新的日期对象
+        const newDate = new Date(selectedDate);
+        newDate.setHours(23, 59, 0, 0); // 默认设置为当天23:59
+        setDueDate(newDate);
+      } else {
+        // 如果已有日期，只更新日期部分
+        const newDate = new Date(dueDate);
+        newDate.setFullYear(selectedDate.getFullYear());
+        newDate.setMonth(selectedDate.getMonth());
+        newDate.setDate(selectedDate.getDate());
+        setDueDate(newDate);
+      }
     }
   };
 
   const onTimeChange = (event, selectedTime) => {
     setShowTimePicker(false);
-    if (selectedTime) {
+    if (selectedTime && dueDate) {
       const newDate = new Date(dueDate);
       newDate.setHours(selectedTime.getHours());
       newDate.setMinutes(selectedTime.getMinutes());
+      newDate.setSeconds(0); // 设置秒为0，精度到分钟
       setDueDate(newDate);
     }
   };
@@ -169,27 +184,51 @@ export default function AddCountdownModal({ visible, onClose }) {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>截止日期</Text>
-            <TouchableOpacity
-              style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={[styles.dateButtonText, { color: colors.text }]}>
-                {formatDate(dueDate)}
-              </Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.dueDateHeader}>
+              <Text style={[styles.label, { color: colors.text }]}>设置截止时间</Text>
+              <Switch
+                value={hasDueDate}
+                onValueChange={(value) => {
+                  setHasDueDate(value);
+                  if (value && !dueDate) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    tomorrow.setHours(23, 59, 0, 0);
+                    setDueDate(tomorrow);
+                  }
+                }}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={hasDueDate ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+            
+            {hasDueDate && (
+              <View style={styles.dateTimeRow}>
+                <View style={[styles.dateTimeSection, { marginRight: 8 }]}>
+                  <Text style={[styles.subLabel, { color: colors.text }]}>日期</Text>
+                  <TouchableOpacity
+                    style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                      {dueDate ? formatDate(dueDate) : '选择日期'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>截止时间</Text>
-            <TouchableOpacity
-              style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Text style={[styles.dateButtonText, { color: colors.text }]}>
-                {formatTime(dueDate)}
-              </Text>
-            </TouchableOpacity>
+                <View style={[styles.dateTimeSection, { marginLeft: 8 }]}>
+                  <Text style={[styles.subLabel, { color: colors.text }]}>时间</Text>
+                  <TouchableOpacity
+                    style={[styles.dateButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                      {dueDate ? formatTime(dueDate) : '选择时间'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
 
           <View style={styles.section}>
@@ -259,7 +298,7 @@ export default function AddCountdownModal({ visible, onClose }) {
 
         {showDatePicker && (
           <DateTimePicker
-            value={dueDate}
+            value={dueDate || new Date()}
             mode="date"
             display="default"
             onChange={onDateChange}
@@ -268,7 +307,7 @@ export default function AddCountdownModal({ visible, onClose }) {
 
         {showTimePicker && (
           <DateTimePicker
-            value={dueDate}
+            value={dueDate || new Date()}
             mode="time"
             display="default"
             onChange={onTimeChange}
@@ -312,6 +351,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+  },
+  subLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 6,
+  },
+  dueDateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   input: {
     borderWidth: 1,

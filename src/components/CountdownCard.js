@@ -113,7 +113,7 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
         </Text>
         
         {countdown.description && (
-          <Text style={[styles.description, { color: theme.colors.border }]} numberOfLines={2}>
+          <Text style={theme.dark ? styles.descriptionDark : styles.description} numberOfLines={2}>
             {countdown.description}
           </Text>
         )}
@@ -227,7 +227,12 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 12,
-    fontStyle: 'italic',
+    color: '#9ca3af', // 浅色模式下的灰色
+    marginBottom: 8,
+  },
+  descriptionDark: {
+    fontSize: 12,
+    color: '#d1d5db', // 深色模式下调亮20%的灰色
     marginBottom: 8,
   },
   footer: {

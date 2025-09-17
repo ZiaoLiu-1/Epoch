@@ -175,7 +175,7 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
       <FlatList
-        data={folders}
+        data={folders.filter(f => !f.isSystem)}
         renderItem={({ item }) => (
           <FolderItem 
             folder={item} 
@@ -187,6 +187,22 @@ export default function HomeScreen({ navigation }) {
         showsHorizontalScrollIndicator={false}
         style={styles.folderList}
       />
+      
+      {/* 系统文件夹 */}
+      <View style={styles.systemFolders}>
+        <Text style={[styles.systemFoldersTitle, { color: theme.colors.text }]}>系统文件夹</Text>
+        <View style={styles.systemFoldersRow}>
+          {folders.filter(f => f.isSystem).map(folder => (
+            <TouchableOpacity
+              key={folder.id}
+              style={[styles.systemFolderItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+              onPress={() => navigation.navigate('Folder', { folderId: folder.id, folderName: folder.name })}
+            >
+              <Text style={[styles.systemFolderText, { color: theme.colors.text }]}>{folder.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
       <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('allCountdowns')}</Text>
     </View>
   ), [theme.colors, t, folders, navigation]);
@@ -301,7 +317,33 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   folderList: {
+    marginBottom: 16,
+  },
+  systemFolders: {
     marginBottom: 24,
+  },
+  systemFoldersTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginLeft: 8,
+  },
+  systemFoldersRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 8,
+  },
+  systemFolderItem: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  systemFolderText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   row: {
     flex: 1,

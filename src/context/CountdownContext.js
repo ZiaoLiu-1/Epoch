@@ -5,6 +5,9 @@ import { TaskType, Priority } from '../types';
 export const CountdownContext = createContext();
 
 const defaultFolders = [
+  { id: 'completed', name: '已完成', color: 'emerald', isSystem: true },
+  { id: 'incomplete', name: '未完成', color: 'blue', isSystem: true },
+  { id: 'overdue', name: '逾期', color: 'red', isSystem: true },
   { id: 'csc367', name: 'CSC367', color: 'emerald' },
   { id: 'csc387', name: 'CSC387', color: 'blue' },
   { id: 'personal', name: '个人事务', color: 'gray' },
@@ -112,9 +115,19 @@ export const CountdownProvider = ({ children }) => {
   };
 
   const toggleCountdownComplete = (id) => {
-    setCountdowns(prev => prev.map(countdown => 
-      countdown.id === id ? { ...countdown, isCompleted: !countdown.isCompleted } : countdown
-    ));
+    setCountdowns(prev => prev.map(countdown => {
+      if (countdown.id === id) {
+        const updatedCountdown = { ...countdown, isCompleted: !countdown.isCompleted };
+        
+        // 如果是一次性任务且被标记为完成，移动到已完成文件夹
+        if (updatedCountdown.isCompleted && countdown.type === TaskType.ONE_TIME) {
+          updatedCountdown.folder = 'completed';
+        }
+        
+        return updatedCountdown;
+      }
+      return countdown;
+    }));
   };
 
   // 文件夹相关操作
