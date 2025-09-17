@@ -65,11 +65,15 @@ export const CountdownProvider = ({ children }) => {
         const storedFolders = await AsyncStorage.getItem('folders');
         const storedCountdowns = await AsyncStorage.getItem('countdowns');
 
+        let loadedFolders = defaultFolders;
         if (storedFolders) {
-          setFolders(JSON.parse(storedFolders));
-        } else {
-          setFolders(defaultFolders);
+          const parsed = JSON.parse(storedFolders);
+          // 确保系统文件夹始终存在
+          const systemFolders = defaultFolders.filter(f => f.isSystem);
+          const userFolders = parsed.filter(f => !f.isSystem);
+          loadedFolders = [...systemFolders, ...userFolders];
         }
+        setFolders(loadedFolders);
 
         if (storedCountdowns) {
           setCountdowns(JSON.parse(storedCountdowns));

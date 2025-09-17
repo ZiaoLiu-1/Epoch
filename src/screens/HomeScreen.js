@@ -175,19 +175,25 @@ export default function HomeScreen({ navigation }) {
 
   const getSystemFolderColor = (folderId) => {
     switch (folderId) {
-      case 'completed': return '#10b981';
-      case 'incomplete': return '#3b82f6';
-      case 'overdue': return '#ef4444';
+      case 'completed': return '#059669'; // 更自然的绿色
+      case 'incomplete': return '#2563eb'; // 更柔和的蓝色
+      case 'overdue': return '#dc2626'; // 更自然的红色
       default: return '#6b7280';
     }
   };
 
-  const renderHeader = useCallback(() => (
+  const renderHeader = useCallback(() => {
+    // 调试日志
+    console.log('All folders:', folders);
+    console.log('System folders:', folders.filter(f => f.isSystem));
+    console.log('User folders:', folders.filter(f => !f.isSystem));
+    
+    return (
     <>
       <View style={styles.topBar}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('folders')}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => setShowFolderModal(true)}
           >
@@ -241,7 +247,8 @@ export default function HomeScreen({ navigation }) {
       </View>
       <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('allCountdowns')}</Text>
     </>
-  ), [theme.colors, t, folders, navigation]);
+  );
+  }, [theme.colors, t, folders, navigation, getSystemFolderCount]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

@@ -37,10 +37,10 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
       return theme.colors.border;
     }
     if (timeRemaining.isOverdue) {
-      return '#ef4444';
+      return '#dc2626'; // 更自然的红色
     }
     if (isUpcoming(countdown.dueDate)) {
-      return '#f59e0b';
+      return '#d97706'; // 更自然的橙色
     }
     return theme.colors.text;
   };
@@ -48,11 +48,11 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
   const getPriorityColor = () => {
     switch (countdown.priority) {
       case Priority.HIGH:
-        return '#ef4444';
+        return '#dc2626'; // 更自然的红色
       case Priority.MEDIUM:
-        return '#f59e0b';
+        return '#d97706'; // 更自然的橙色
       case Priority.LOW:
-        return '#10b981';
+        return '#059669'; // 更自然的绿色
       default:
         return theme.colors.border;
     }
