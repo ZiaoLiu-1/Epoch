@@ -155,8 +155,34 @@ export default function HomeScreen({ navigation }) {
     </View>
   ), [theme.colors.text, renderCountdownItem]);
 
+  const getSystemFolderCount = useCallback((folderId) => {
+    return countdowns.filter(c => {
+      if (folderId === 'completed') return c.isCompleted;
+      if (folderId === 'incomplete') return !c.isCompleted && (!c.dueDate || new Date(c.dueDate) >= new Date());
+      if (folderId === 'overdue') return !c.isCompleted && c.dueDate && new Date(c.dueDate) < new Date();
+      return false;
+    }).length;
+  }, [countdowns]);
+
+  const getSystemFolderIcon = (folderId) => {
+    switch (folderId) {
+      case 'completed': return '✓';
+      case 'incomplete': return '○';
+      case 'overdue': return '⚠';
+      default: return '○';
+    }
+  };
+
+  const getSystemFolderColor = (folderId) => {
+    switch (folderId) {
+      case 'completed': return '#10b981';
+      case 'incomplete': return '#3b82f6';
+      case 'overdue': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
   const renderHeader = useCallback(() => (
-    <View>
       <View style={styles.topBar}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('folders')}</Text>
@@ -192,15 +218,24 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.systemFolders}>
         <Text style={[styles.systemFoldersTitle, { color: theme.colors.text }]}>系统文件夹</Text>
         <View style={styles.systemFoldersRow}>
-          {folders.filter(f => f.isSystem).map(folder => (
-            <TouchableOpacity
-              key={folder.id}
-              style={[styles.systemFolderItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-              onPress={() => navigation.navigate('Folder', { folderId: folder.id, folderName: folder.name })}
-            >
-              <Text style={[styles.systemFolderText, { color: theme.colors.text }]}>{folder.name}</Text>
-            </TouchableOpacity>
-          ))}
+          {folders.filter(f => f.isSystem).map(folder => {
+            const taskCount = getSystemFolderCount(folder.id);
+            return (
+              <TouchableOpacity
+                key={folder.id}
+                style={[styles.systemFolderItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                onPress={() => navigation.navigate('Folder', { folderId: folder.id, folderName: folder.name })}
+              >
+                <View style={styles.systemFolderContent}>
+                  <Text style={[styles.systemFolderIcon, { color: getSystemFolderColor(folder.id) }]}>
+                    {getSystemFolderIcon(folder.id)}
+                  </Text>
+                  <Text style={[styles.systemFolderText, { color: theme.colors.text }]}>{folder.name}</Text>
+                  <Text style={[styles.systemFolderCount, { color: theme.colors.border }]}>{taskCount}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
       <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('allCountdowns')}</Text>
@@ -335,14 +370,29 @@ const styles = StyleSheet.create({
   },
   systemFolderItem: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
+    minHeight: 80,
+  },
+  systemFolderContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  systemFolderIcon: {
+    fontSize: 24,
+    marginBottom: 4,
   },
   systemFolderText: {
     fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  systemFolderCount: {
+    fontSize: 10,
     fontWeight: '500',
   },
   row: {

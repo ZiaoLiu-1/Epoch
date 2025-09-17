@@ -22,8 +22,8 @@ export default function FolderScreen({ route, navigation }) {
   // 获取当前文件夹的倒计时
   const folderCountdowns = countdowns.filter(c => {
     if (folderId === 'completed') return c.isCompleted;
-    if (folderId === 'incomplete') return !c.isCompleted && !isOverdue(c.dueDate);
-    if (folderId === 'overdue') return !c.isCompleted && isOverdue(c.dueDate);
+    if (folderId === 'incomplete') return !c.isCompleted && (!c.dueDate || new Date(c.dueDate) >= new Date());
+    if (folderId === 'overdue') return !c.isCompleted && c.dueDate && new Date(c.dueDate) < new Date();
     return c.folder === folderId;
   });
 
