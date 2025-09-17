@@ -16,7 +16,7 @@ import { TaskType, Priority } from '../types';
 
 export default function EditCountdownModal({ visible, onClose, countdown }) {
   const { colors } = useTheme();
-  const { folders, updateCountdown } = useContext(CountdownContext);
+  const { folders, updateCountdown, deleteCountdown, toggleCountdownComplete } = useContext(CountdownContext);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -59,6 +59,29 @@ export default function EditCountdownModal({ visible, onClose, countdown }) {
 
   const handleClose = () => {
     onClose();
+  };
+
+  const handleToggleComplete = () => {
+    toggleCountdownComplete(countdown.id);
+    handleClose();
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      '确认删除',
+      `确定要删除"${countdown.title}"吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: () => {
+            deleteCountdown(countdown.id);
+            handleClose();
+          },
+        },
+      ]
+    );
   };
 
   const onDateChange = (event, selectedDate) => {
@@ -249,6 +272,24 @@ export default function EditCountdownModal({ visible, onClose, countdown }) {
               ))}
             </View>
           </View>
+
+          {/* 操作按钮 */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.completeButton]}
+              onPress={handleToggleComplete}
+            >
+              <Text style={styles.actionButtonText}>
+                {countdown?.isCompleted ? '标记为未完成' : '标记为完成'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={handleDelete}
+            >
+              <Text style={styles.actionButtonText}>删除</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
 
         {showDatePicker && (
@@ -382,6 +423,29 @@ const styles = StyleSheet.create({
   priorityOptionText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  completeButton: {
+    backgroundColor: '#10b981',
+  },
+  deleteButton: {
+    backgroundColor: '#ef4444',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

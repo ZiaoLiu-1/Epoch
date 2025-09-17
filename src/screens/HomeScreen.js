@@ -220,19 +220,19 @@ export default function HomeScreen({ navigation }) {
                 style={[styles.toolbarButton, styles.completeButton]}
                 onPress={handleBatchComplete}
               >
-                <Text style={styles.toolbarButtonText}>{t('complete')}</Text>
+                <Text style={styles.toolbarButtonIcon}>✓</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.toolbarButton, styles.deleteButton]}
                 onPress={handleBatchDelete}
               >
-                <Text style={styles.toolbarButtonText}>{t('delete')}</Text>
+                <Text style={styles.toolbarButtonIcon}>🗑</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.toolbarButton, styles.cancelButton, { backgroundColor: theme.colors.border }]}
                 onPress={exitSelectionMode}
               >
-                <Text style={styles.toolbarButtonText}>{t('cancel')}</Text>
+                <Text style={styles.toolbarButtonIcon}>✕</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -378,10 +378,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   toolbarButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    minWidth: 70,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   completeButton: {
@@ -392,6 +392,11 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     // backgroundColor will be set dynamically
+  },
+  toolbarButtonIcon: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   toolbarButtonText: {
     color: '#fff',

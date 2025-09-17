@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     borderColor: '#3b82f6',
   },
   selectionModeCard: {
-    transform: [{ scale: 0.95 }],
+    // 移除transform缩放，避免卡片变形
   },
   colorBar: {
     width: 6,
