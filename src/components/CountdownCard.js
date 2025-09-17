@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, PanGestureHandler, State } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useThemeContext } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { calculateTimeRemaining, formatTimeDisplay, formatDate, formatTime, isUpcoming } from '../utils/dateUtils';
