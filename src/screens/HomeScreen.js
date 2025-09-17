@@ -183,6 +183,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   const renderHeader = useCallback(() => (
+    <>
       <View style={styles.topBar}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('folders')}</Text>
@@ -239,7 +240,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
       <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('allCountdowns')}</Text>
-    </View>
+    </>
   ), [theme.colors, t, folders, navigation]);
 
   return (
