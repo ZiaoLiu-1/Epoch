@@ -3,14 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 
 const folderColors = {
-  emerald: '#10b981',
-  blue: '#3b82f6',
-  purple: '#8b5cf6',
-  orange: '#f59e0b',
-  red: '#ef4444',
-  pink: '#ec4899',
-  indigo: '#6366f1',
-  gray: '#6b7280',
+  emerald: '#16a34a', // 更柔和的绿色
+  blue: '#2563eb',    // 保持蓝色
+  purple: '#7c3aed',  // 更柔和的紫色
+  orange: '#ea580c',  // 更柔和的橙色
+  red: '#e11d48',     // 更柔和的红色
+  pink: '#db2777',    // 更柔和的粉色
+  indigo: '#4f46e5',  // 更柔和的靛蓝
+  gray: '#6b7280',    // 保持灰色
 };
 
 export default function FolderItem({ folder, onPress }) {

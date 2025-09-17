@@ -118,19 +118,22 @@ export default function FolderScreen({ route, navigation }) {
       <Text style={[styles.subSectionTitle, { color: theme.colors.text }]}>
         {title}
       </Text>
-      <FlatList
-        data={data}
-        renderItem={renderCountdownItem}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        columnWrapperStyle={data.length > 1 ? styles.row : null}
-        scrollEnabled={false}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-      />
+      <View style={styles.gridContainer}>
+        {data.map((item, index) => (
+          <View key={item.id} style={styles.cardWrapper}>
+            <CountdownCard 
+              countdown={item} 
+              folderColor={getFolderColor()}
+              onPress={handleCountdownPress}
+              onLongPress={handleCountdownLongPress}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedCountdowns.has(item.id)}
+            />
+          </View>
+        ))}
+      </View>
     </View>
-  ), [theme.colors.text, renderCountdownItem]);
+  ), [theme.colors.text, getFolderColor, handleCountdownPress, handleCountdownLongPress, isSelectionMode, selectedCountdowns]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -144,8 +147,10 @@ export default function FolderScreen({ route, navigation }) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
-        maxToRenderPerBatch={5}
-        windowSize={10}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        initialNumToRender={2}
+        updateCellsBatchingPeriod={100}
       />
       
       {/* 批量操作工具栏 */}
@@ -221,9 +226,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 8,
   },
-  row: {
-    flex: 1,
-    justifyContent: 'space-around',
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+  },
+  cardWrapper: {
+    width: '48%',
+    marginBottom: 16,
   },
   fab: {
     position: 'absolute',

@@ -8,14 +8,14 @@ import { CountdownContext } from '../context/CountdownContext';
 import { TaskType, Priority } from '../types';
 
 const folderColors = {
-  emerald: '#10b981',
-  blue: '#3b82f6',
-  purple: '#8b5cf6',
-  orange: '#f59e0b',
-  red: '#ef4444',
-  pink: '#ec4899',
-  indigo: '#6366f1',
-  gray: '#6b7280',
+  emerald: '#16a34a', // 更柔和的绿色
+  blue: '#2563eb',    // 保持蓝色
+  purple: '#7c3aed',  // 更柔和的紫色
+  orange: '#ea580c',  // 更柔和的橙色
+  red: '#e11d48',     // 更柔和的红色
+  pink: '#db2777',    // 更柔和的粉色
+  indigo: '#4f46e5',  // 更柔和的靛蓝
+  gray: '#6b7280',    // 保持灰色
 };
 
 export default function CountdownCard({ countdown, folderColor, onPress, onLongPress, isSelectionMode, isSelected, onPanGesture }) {
@@ -27,7 +27,7 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeRemaining(calculateTimeRemaining(countdown.dueDate));
-    }, 1000);
+    }, 5000); // 减少到5秒刷新一次，提高性能
 
     return () => clearInterval(timer);
   }, [countdown.dueDate]);
@@ -37,10 +37,10 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
       return theme.colors.border;
     }
     if (timeRemaining.isOverdue) {
-      return '#dc2626'; // 更自然的红色
+      return '#e11d48'; // 更柔和的红色
     }
     if (isUpcoming(countdown.dueDate)) {
-      return '#d97706'; // 更自然的橙色
+      return '#ea580c'; // 更柔和的橙色
     }
     return theme.colors.text;
   };
@@ -48,11 +48,11 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
   const getPriorityColor = () => {
     switch (countdown.priority) {
       case Priority.HIGH:
-        return '#dc2626'; // 更自然的红色
+        return '#e11d48'; // 更柔和的红色
       case Priority.MEDIUM:
-        return '#d97706'; // 更自然的橙色
+        return '#ea580c'; // 更柔和的橙色
       case Priority.LOW:
-        return '#059669'; // 更自然的绿色
+        return '#16a34a'; // 更柔和的绿色
       default:
         return theme.colors.border;
     }
@@ -98,7 +98,10 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
             styles.title, 
             { color: theme.colors.text },
             countdown.isCompleted && styles.completedText
-          ]} numberOfLines={2}>
+          ]} 
+          numberOfLines={2}
+          ellipsizeMode="tail"
+          >
             {countdown.title}
           </Text>
           <View style={[styles.priorityDot, { backgroundColor: getPriorityColor() }]} />
@@ -113,7 +116,14 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
         </Text>
         
         {countdown.description ? (
-          <Text style={theme.dark ? styles.descriptionDark : styles.description} numberOfLines={2}>
+          <Text 
+            style={[
+              theme.dark ? styles.descriptionDark : styles.description,
+              { color: theme.dark ? '#d1d5db' : '#6b7280' }
+            ]} 
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
             {countdown.description}
           </Text>
         ) : (
@@ -149,14 +159,14 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    marginVertical: 8,
-    marginHorizontal: 16,
+    marginVertical: 4,
     elevation: 6,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    height: 160, // 固定高度确保一致性
+    height: 180, // 增加高度以容纳更多内容
     overflow: 'hidden',
+    flex: 1,
   },
   completedCard: {
     opacity: 0.6,
@@ -193,23 +203,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    padding: 20,
+    padding: 16,
     marginLeft: 6,
     flex: 1,
-    justifyContent: 'space-between', // 确保内容均匀分布
+    justifyContent: 'space-between',
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8, // 减少间距
+    marginBottom: 10,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     flex: 1,
     marginRight: 12,
-    lineHeight: 22, // 固定行高
+    lineHeight: 20,
   },
   completedText: {
     textDecorationLine: 'line-through',
@@ -221,48 +231,46 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   time: {
-    fontSize: 18, // 统一字体大小
+    fontSize: 16,
     fontWeight: '700',
     marginBottom: 6,
-    lineHeight: 22, // 固定行高
+    lineHeight: 20,
   },
   date: {
-    fontSize: 14,
-    marginBottom: 6,
+    fontSize: 12,
+    marginBottom: 8,
     opacity: 0.7,
-    lineHeight: 18, // 固定行高
+    lineHeight: 16,
   },
   description: {
-    fontSize: 14,
-    color: '#9ca3af',
-    marginBottom: 8,
-    lineHeight: 18, // 固定行高
-    height: 36, // 固定高度，最多显示2行
+    fontSize: 13,
+    marginBottom: 10,
+    lineHeight: 17,
+    height: 34, // 固定高度，最多显示2行
   },
   descriptionDark: {
-    fontSize: 14,
-    color: '#d1d5db',
-    marginBottom: 8,
-    lineHeight: 18, // 固定行高
-    height: 36, // 固定高度，最多显示2行
+    fontSize: 13,
+    marginBottom: 10,
+    lineHeight: 17,
+    height: 34, // 固定高度，最多显示2行
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 'auto',
-    height: 20, // 固定底部高度
+    height: 18,
   },
   descriptionPlaceholder: {
-    height: 36, // 与描述文字相同的高度
-    marginBottom: 8,
+    height: 34, // 与描述文字相同的高度
+    marginBottom: 10,
   },
   taskType: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    lineHeight: 16, // 固定行高
+    lineHeight: 14,
   },
 });
 

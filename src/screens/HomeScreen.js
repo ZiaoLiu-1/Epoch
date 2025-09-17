@@ -136,24 +136,23 @@ export default function HomeScreen({ navigation }) {
       <Text style={[styles.subSectionTitle, { color: theme.colors.text }]}>
         {title}
       </Text>
-      <FlatList
-        data={data}
-        renderItem={renderCountdownItem}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        columnWrapperStyle={data.length > 1 ? styles.row : null}
-        scrollEnabled={false}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-        getItemLayout={(data, index) => ({
-          length: 140,
-          offset: 140 * Math.floor(index / 2),
-          index,
-        })}
-      />
+      <View style={styles.gridContainer}>
+        {data.map((item, index) => (
+          <View key={item.id} style={styles.cardWrapper}>
+            <CountdownCard 
+              countdown={item} 
+              folderColor={getFolderColor(item.folder)}
+              onPress={handleCountdownPress}
+              onLongPress={handleCountdownLongPress}
+              onPanGesture={handlePanGesture}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedCountdowns.has(item.id)}
+            />
+          </View>
+        ))}
+      </View>
     </View>
-  ), [theme.colors.text, renderCountdownItem]);
+  ), [theme.colors.text, getFolderColor, handleCountdownPress, handleCountdownLongPress, handlePanGesture, isSelectionMode, selectedCountdowns]);
 
   const getSystemFolderCount = useCallback((folderId) => {
     return countdowns.filter(c => {
@@ -175,9 +174,9 @@ export default function HomeScreen({ navigation }) {
 
   const getSystemFolderColor = (folderId) => {
     switch (folderId) {
-      case 'completed': return '#059669'; // 更自然的绿色
-      case 'incomplete': return '#2563eb'; // 更柔和的蓝色
-      case 'overdue': return '#dc2626'; // 更自然的红色
+      case 'completed': return '#16a34a'; // 更柔和的绿色
+      case 'incomplete': return '#2563eb'; // 保持蓝色
+      case 'overdue': return '#e11d48'; // 更柔和的红色
       default: return '#6b7280';
     }
   };
@@ -258,8 +257,10 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
-        maxToRenderPerBatch={5}
-        windowSize={10}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        initialNumToRender={2}
+        updateCellsBatchingPeriod={100}
       />
       
       {/* 优化的批量操作工具栏 */}
@@ -398,9 +399,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
   },
-  row: {
-    flex: 1,
-    justifyContent: 'space-around',
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+  },
+  cardWrapper: {
+    width: '48%',
+    marginBottom: 16,
   },
   addButton: {
     width: 32,
@@ -480,10 +487,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completeButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#16a34a', // 更柔和的绿色
   },
   deleteButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: '#e11d48', // 更柔和的红色
   },
   cancelButton: {
     // backgroundColor will be set dynamically
