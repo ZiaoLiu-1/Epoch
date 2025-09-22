@@ -82,18 +82,19 @@ const computeCount = (tasks, filterId) => {
   return tasks.filter(task => task.category === filterId).length;
 };
 
-export default function FilterChips({
+const FilterChipsComponent = ({
   tasks = [],
   filters,
   selectedFilter,
   selected,
   onFilterChange,
-  onSelect
-}) {
+  onSelect,
+}) => {
   const { theme } = useThemeContext();
 
   const activeFilter = selectedFilter ?? selected ?? 'all';
   const handleChange = onFilterChange ?? onSelect;
+  const borderColor = theme.colors.cardBorder || theme.colors.border;
 
   const providedFilters = Array.isArray(filters) && filters.length > 0
     ? filters
@@ -126,7 +127,7 @@ export default function FilterChips({
               borderColor:
                 activeFilter === option.id
                   ? theme.colors.primary
-                  : theme.colors.cardBorder || theme.colors.border,
+                  : borderColor,
               borderWidth: activeFilter === option.id ? 2 : 1,
               opacity: handleChange ? 1 : 0.6,
             },
@@ -154,7 +155,7 @@ export default function FilterChips({
                 backgroundColor:
                   activeFilter === option.id
                     ? theme.colors.primary + '30'
-                    : theme.colors.cardBorder || theme.colors.border,
+                    : borderColor,
               },
             ]}
           >
@@ -176,7 +177,11 @@ export default function FilterChips({
       ))}
     </ScrollView>
   );
-}
+};
+
+export const FilterChips = FilterChipsComponent;
+
+export default FilterChipsComponent;
 
 const styles = StyleSheet.create({
   scrollView: {

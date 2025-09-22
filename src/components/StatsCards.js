@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext';
 
 const getTaskMetrics = (tasks = []) => {
-  if (!Array.isArray(tasks)) {
+  if (!Array.isArray(tasks) || tasks.length === 0) {
     return {
       total: 0,
       pending: 0,
@@ -55,10 +55,13 @@ const getTaskMetrics = (tasks = []) => {
   };
 };
 
-export default function StatsCards({ tasks = [] }) {
+const StatsCardsComponent = ({ tasks = [] }) => {
   const { theme } = useThemeContext();
 
   const metrics = useMemo(() => getTaskMetrics(tasks), [tasks]);
+  const borderColor = theme.colors.cardBorder || theme.colors.border;
+  const successColor = theme.colors.success || '#10B981';
+  const destructiveColor = theme.colors.destructive || '#EF4444';
 
   const statsData = [
     {
@@ -104,7 +107,7 @@ export default function StatsCards({ tasks = [] }) {
             styles.card,
             {
               backgroundColor: theme.colors.card,
-              borderColor: theme.colors.cardBorder || theme.colors.border,
+              borderColor,
             }
           ]}
         >
@@ -128,8 +131,8 @@ export default function StatsCards({ tasks = [] }) {
                 styles.trendContainer,
                 {
                   backgroundColor: stat.trendUp
-                    ? (theme.colors.success || '#10B981') + '20'
-                    : (theme.colors.destructive || '#EF4444') + '20',
+                    ? successColor + '20'
+                    : destructiveColor + '20',
                 }
               ]}
             >
@@ -138,8 +141,8 @@ export default function StatsCards({ tasks = [] }) {
                   styles.trendText,
                   {
                     color: stat.trendUp
-                      ? (theme.colors.success || '#10B981')
-                      : (theme.colors.destructive || '#EF4444'),
+                      ? successColor
+                      : destructiveColor,
                   }
                 ]}
               >
@@ -170,7 +173,11 @@ export default function StatsCards({ tasks = [] }) {
       ))}
     </View>
   );
-}
+};
+
+export const StatsCards = StatsCardsComponent;
+
+export default StatsCardsComponent;
 
 const styles = StyleSheet.create({
   container: {
