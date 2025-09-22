@@ -1,0 +1,670 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useThemeContext } from '../context/ThemeContext';
+
+interface TaskDetailProps {
+  task?: {
+    id: string;
+    title: string;
+    description: string;
+    deadline?: string;
+    countdown?: string;
+    folderColor: string;
+    type: '一次性' | '循环';
+    priority?: 'high' | 'medium' | 'low';
+    category?: string;
+  };
+  onBack: () => void;
+  onSave: (task: any) => void;
+  onDelete?: (taskId: string) => void;
+  onComplete?: (taskId: string) => void;
+}
+
+const categories = [
+  { id: 'none', label: '无分类', color: '#64748B' },
+  { id: 'completed', label: '已完成', color: '#10B981' },
+  { id: 'pending', label: '未完成', color: '#60A5FA' },
+  { id: 'overdue', label: '逾期', color: '#F87171' },
+  { id: 'csc3', label: 'CSC3', color: '#9B69FB' }
+];
+
+const priorities = [
+  { id: 'high', label: '高', color: '#F87171' },
+  { id: 'medium', label: '中', color: '#F59E0B' },
+  { id: 'low', label: '低', color: '#64748B' }
+];
+
+export function TaskDetail({ task, onBack, onSave, onDelete, onComplete }: TaskDetailProps) {
+  const { theme } = useThemeContext();
+  const [title, setTitle] = useState(task?.title || '');
+  const [description, setDescription] = useState(task?.description || '');
+  const [deadline, setDeadline] = useState(new Date(task?.deadline || '2025-11-13'));
+  const [deadlineTime, setDeadlineTime] = useState(new Date(`${task?.deadline || '2025-11-13'} 12:00:00`));
+  const [taskType, setTaskType] = useState<'一次性' | '循环'>(task?.type || '一次性');
+  const [priority, setPriority] = useState(task?.priority || 'medium');
+  const [category, setCategory] = useState(task?.category || 'pending');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const handleSave = () => {
+    if (!title.trim()) {
+      Alert.alert('错误', '请输入任务标题');
+      return;
+    }
+
+    const updatedTask = {
+      id: task?.id || Date.now().toString(),
+      title,
+      description,
+      deadline: deadline.toISOString().split('T')[0],
+      countdown: task?.countdown || '新任务',
+      folderColor: task?.folderColor || '#3B82F6',
+      type: taskType,
+      priority,
+      category
+    };
+    onSave(updatedTask);
+  };
+
+  const handleDelete = () => {
+    if (task?.id && onDelete) {
+      Alert.alert(
+        '删除任务',
+        '确定要删除这个任务吗？',
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '删除', style: 'destructive', onPress: () => onDelete(task.id) }
+        ]
+      );
+    }
+  };
+
+  const handleComplete = () => {
+    if (task?.id && onComplete) {
+      Alert.alert(
+        '完成任务',
+        '确定要标记这个任务为已完成吗？',
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '完成', onPress: () => onComplete(task.id) }
+        ]
+      );
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={
+          theme.id === 'dark' 
+            ? ['#1e293b', '#0a0f1c', '#020617']
+            : theme.id === 'warm'
+            ? ['#E6F3FF', '#F0F8E8', '#FFF8DC', '#F5F5DC', '#F7F3E7']
+            : theme.id === 'morandi'
+            ? ['#F5F2F0', '#ECE8E5', '#E8E4E1', '#E4DFD8', '#DFD9D1']
+            : [theme.colors.background, theme.colors.backgroundSecondary]
+        }
+        style={styles.background}
+      >
+        {/* Header */}
+        <View 
+          style={[
+            styles.header,
+            { borderBottomColor: theme.colors.cardBorder }
+          ]}
+        >
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.headerButton}
+          >
+            <Ionicons 
+              name="arrow-back" 
+              size={20} 
+              color={theme.colors.mutedForeground} 
+            />
+            <Text style={[styles.headerButtonText, { color: theme.colors.mutedForeground }]}>
+              取消
+            </Text>
+          </TouchableOpacity>
+          
+          <Text style={[styles.headerTitle, { color: theme.colors.foreground }]}>
+            编辑倒计时
+          </Text>
+          
+          <TouchableOpacity
+            onPress={handleSave}
+            style={styles.headerButton}
+          >
+            <Text style={[styles.saveButtonText, { color: theme.colors.primary }]}>
+              保存
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView 
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Title Input */}
+          <View style={styles.inputSection}>
+            <Text style={[styles.sectionLabel, { color: theme.colors.mutedForeground }]}>
+              标题 <Text style={{ color: theme.colors.destructive }}>*</Text>
+            </Text>
+            <View 
+              style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.cardBorder,
+                }
+              ]}
+            >
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                style={[styles.textInput, { color: theme.colors.foreground }]}
+                placeholder="输入任务标题..."
+                placeholderTextColor={theme.colors.mutedForeground}
+                multiline={false}
+              />
+            </View>
+          </View>
+
+          {/* Description Input */}
+          <View style={styles.inputSection}>
+            <Text style={[styles.sectionLabel, { color: theme.colors.mutedForeground }]}>
+              描述
+            </Text>
+            <View 
+              style={[
+                styles.inputContainer,
+                styles.textAreaContainer,
+                {
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.cardBorder,
+                }
+              ]}
+            >
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                style={[styles.textArea, { color: theme.colors.foreground }]}
+                placeholder="输入任务描述..."
+                placeholderTextColor={theme.colors.mutedForeground}
+                multiline={true}
+                numberOfLines={4}
+              />
+            </View>
+          </View>
+
+          {/* Category Selection */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: theme.colors.mutedForeground }]}>
+              分类
+            </Text>
+            <View style={styles.chipContainer}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  onPress={() => setCategory(cat.id)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: category === cat.id 
+                        ? theme.colors.primary + '20' 
+                        : theme.colors.card,
+                      borderColor: category === cat.id 
+                        ? theme.colors.primary 
+                        : theme.colors.cardBorder,
+                    }
+                  ]}
+                >
+                  <Text 
+                    style={[
+                      styles.chipText,
+                      { 
+                        color: category === cat.id 
+                          ? theme.colors.primary 
+                          : theme.colors.mutedForeground 
+                      }
+                    ]}
+                  >
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Date and Time Selection */}
+          <View style={styles.dateTimeSection}>
+            <View style={styles.dateTimeRow}>
+              <View style={styles.dateTimeItem}>
+                <Text style={[styles.sectionLabel, { color: theme.colors.mutedForeground }]}>
+                  <Ionicons name="calendar-outline" size={16} /> 截止日期
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowDatePicker(true)}
+                  style={[
+                    styles.dateTimeButton,
+                    {
+                      backgroundColor: theme.colors.card,
+                      borderColor: theme.colors.cardBorder,
+                    }
+                  ]}
+                >
+                  <Text style={[styles.dateTimeText, { color: theme.colors.foreground }]}>
+                    {formatDate(deadline)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.dateTimeItem}>
+                <Text style={[styles.sectionLabel, { color: theme.colors.mutedForeground }]}>
+                  <Ionicons name="time-outline" size={16} /> 截止时间
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowTimePicker(true)}
+                  style={[
+                    styles.dateTimeButton,
+                    {
+                      backgroundColor: theme.colors.card,
+                      borderColor: theme.colors.cardBorder,
+                    }
+                  ]}
+                >
+                  <Text style={[styles.dateTimeText, { color: theme.colors.foreground }]}>
+                    {formatTime(deadlineTime)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Task Type Selection */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: theme.colors.mutedForeground }]}>
+              任务类型
+            </Text>
+            <View style={styles.taskTypeContainer}>
+              <TouchableOpacity
+                onPress={() => setTaskType('一次性')}
+                style={[
+                  styles.taskTypeButton,
+                  {
+                    backgroundColor: taskType === '一次性' 
+                      ? theme.colors.mutedForeground + '20' 
+                      : theme.colors.card,
+                    borderColor: taskType === '一次性' 
+                      ? theme.colors.mutedForeground 
+                      : theme.colors.cardBorder,
+                  }
+                ]}
+              >
+                <Ionicons 
+                  name="time-outline" 
+                  size={20} 
+                  color={taskType === '一次性' ? theme.colors.mutedForeground : theme.colors.muted} 
+                />
+                <Text 
+                  style={[
+                    styles.taskTypeText,
+                    { 
+                      color: taskType === '一次性' 
+                        ? theme.colors.mutedForeground 
+                        : theme.colors.muted 
+                    }
+                  ]}
+                >
+                  一次性任务
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setTaskType('循环')}
+                style={[
+                  styles.taskTypeButton,
+                  {
+                    backgroundColor: taskType === '循环' 
+                      ? theme.colors.card 
+                      : theme.colors.card,
+                    borderColor: taskType === '循环' 
+                      ? theme.colors.primary 
+                      : theme.colors.cardBorder,
+                  }
+                ]}
+              >
+                <Ionicons 
+                  name="refresh-outline" 
+                  size={20} 
+                  color={taskType === '循环' ? theme.colors.primary : theme.colors.muted} 
+                />
+                <Text 
+                  style={[
+                    styles.taskTypeText,
+                    { 
+                      color: taskType === '循环' 
+                        ? theme.colors.primary 
+                        : theme.colors.muted 
+                    }
+                  ]}
+                >
+                  循环任务
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Priority Selection */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: theme.colors.mutedForeground }]}>
+              <Ionicons name="star-outline" size={16} /> 优先级
+            </Text>
+            <View style={styles.priorityContainer}>
+              {priorities.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => setPriority(p.id)}
+                  style={[
+                    styles.priorityButton,
+                    {
+                      backgroundColor: priority === p.id 
+                        ? p.color + '20' 
+                        : theme.colors.card,
+                      borderColor: priority === p.id 
+                        ? p.color 
+                        : theme.colors.cardBorder,
+                    }
+                  ]}
+                >
+                  <Text 
+                    style={[
+                      styles.priorityText,
+                      { 
+                        color: priority === p.id 
+                          ? p.color 
+                          : theme.colors.mutedForeground 
+                      }
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Action Buttons */}
+          {task?.id && (
+            <View style={styles.actionSection}>
+              {task.category !== 'completed' && (
+                <TouchableOpacity
+                  onPress={handleComplete}
+                  style={[
+                    styles.actionButton,
+                    styles.completeButton,
+                    {
+                      backgroundColor: theme.colors.success + '20',
+                      borderColor: theme.colors.success,
+                    }
+                  ]}
+                >
+                  <Ionicons 
+                    name="checkmark" 
+                    size={20} 
+                    color={theme.colors.success} 
+                  />
+                  <Text 
+                    style={[
+                      styles.actionButtonText,
+                      { color: theme.colors.success }
+                    ]}
+                  >
+                    标记为完成
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                onPress={handleDelete}
+                style={[
+                  styles.actionButton,
+                  styles.deleteButton,
+                  {
+                    backgroundColor: theme.colors.destructive + '20',
+                    borderColor: theme.colors.destructive,
+                  }
+                ]}
+              >
+                <Ionicons 
+                  name="trash-outline" 
+                  size={20} 
+                  color={theme.colors.destructive} 
+                />
+                <Text 
+                  style={[
+                    styles.actionButtonText,
+                    { color: theme.colors.destructive }
+                  ]}
+                >
+                  删除
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Date Picker */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={deadline}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) {
+                setDeadline(selectedDate);
+              }
+            }}
+          />
+        )}
+
+        {/* Time Picker */}
+        {showTimePicker && (
+          <DateTimePicker
+            value={deadlineTime}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedTime) => {
+              setShowTimePicker(false);
+              if (selectedTime) {
+                setDeadlineTime(selectedTime);
+              }
+            }}
+          />
+        )}
+      </LinearGradient>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  background: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  headerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerButtonText: {
+    fontSize: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  inputSection: {
+    marginBottom: 24,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputContainer: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  textAreaContainer: {
+    minHeight: 120,
+  },
+  textInput: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  textArea: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlignVertical: 'top',
+    minHeight: 80,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  dateTimeSection: {
+    marginBottom: 24,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateTimeItem: {
+    flex: 1,
+  },
+  dateTimeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  dateTimeText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  taskTypeContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  taskTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  taskTypeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  priorityContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  priorityButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  priorityText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  actionSection: {
+    marginTop: 32,
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  completeButton: {
+    // Specific styles for complete button if needed
+  },
+  deleteButton: {
+    // Specific styles for delete button if needed
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

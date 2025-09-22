@@ -3,9 +3,12 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react
 import { useThemeContext } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { CountdownContext } from '../context/CountdownContext';
+import { useFiles } from '../context/FileContext';
 import CountdownCard from '../components/CountdownCard';
 import AddCountdownModal from '../components/AddCountdownModal';
 import EditCountdownModal from '../components/EditCountdownModal';
+import FileUploadModal from '../components/FileUploadModal';
+import FileListModal from '../components/FileListModal';
 import { TaskType } from '../types';
 
 export default function FolderScreen({ route, navigation }) {
@@ -13,11 +16,14 @@ export default function FolderScreen({ route, navigation }) {
   const { theme } = useThemeContext();
   const { t } = useLanguage();
   const { countdowns, folders, deleteCountdown, toggleCountdownComplete } = useContext(CountdownContext);
+  const { getFolderFiles } = useFiles();
   const [showCountdownModal, setShowCountdownModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedCountdowns, setSelectedCountdowns] = useState(new Set());
+  const [showFileUploadModal, setShowFileUploadModal] = useState(false);
+  const [showFileListModal, setShowFileListModal] = useState(false);
 
   // 获取当前文件夹的倒计时
   const folderCountdowns = countdowns.filter(c => {
@@ -113,23 +119,65 @@ export default function FolderScreen({ route, navigation }) {
     />
   ), [getFolderColor, handleCountdownPress, handleCountdownLongPress, isSelectionMode, selectedCountdowns]);
 
+  const folderFiles = getFolderFiles(folderId);
+  const isSystemFolder = ['completed', 'incomplete', 'overdue'].includes(folderId);
+
+  const renderHeader = useCallback(() => (
+    <View style={styles.headerSection}>
+      {/* 文件管理区域 - 只在非系统文件夹显示 */}
+      {!isSystemFolder && (
+        <View style={styles.fileSection}>
+          <View style={styles.fileSectionHeader}>
+            <Text style={[styles.fileSectionTitle, { color: theme.colors.text }]}>
+              📁 文件管理
+            </Text>
+            <Text style={[styles.fileCount, { color: theme.colors.border }]}>
+              {folderFiles.length} 个文件
+            </Text>
+          </View>
+          
+          <View style={styles.fileButtons}>
+            <TouchableOpacity 
+              style={[styles.fileButton, { backgroundColor: theme.colors.primary }]}
+              onPress={() => setShowFileUploadModal(true)}
+            >
+              <Text style={styles.fileButtonIcon}>📤</Text>
+              <Text style={styles.fileButtonText}>上传文件</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.fileButton, { 
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border,
+                borderWidth: 1,
+              }]}
+              onPress={() => setShowFileListModal(true)}
+            >
+              <Text style={[styles.fileButtonIcon, { color: theme.colors.text }]}>📋</Text>
+              <Text style={[styles.fileButtonText, { color: theme.colors.text }]}>查看文件</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
+  ), [theme.colors, folderFiles.length, isSystemFolder]);
+
   const renderCountdownSection = useCallback((title, data) => (
     <View style={styles.section}>
       <Text style={[styles.subSectionTitle, { color: theme.colors.text }]}>
         {title}
       </Text>
-      <View style={styles.gridContainer}>
+      <View style={styles.singleColumnContainer}>
         {data.map((item, index) => (
-          <View key={item.id} style={styles.cardWrapper}>
-            <CountdownCard 
-              countdown={item} 
-              folderColor={getFolderColor()}
-              onPress={handleCountdownPress}
-              onLongPress={handleCountdownLongPress}
-              isSelectionMode={isSelectionMode}
-              isSelected={selectedCountdowns.has(item.id)}
-            />
-          </View>
+          <CountdownCard 
+            key={item.id}
+            countdown={item} 
+            folderColor={getFolderColor()}
+            onPress={handleCountdownPress}
+            onLongPress={handleCountdownLongPress}
+            isSelectionMode={isSelectionMode}
+            isSelected={selectedCountdowns.has(item.id)}
+          />
         ))}
       </View>
     </View>
@@ -144,6 +192,7 @@ export default function FolderScreen({ route, navigation }) {
         ]}
         renderItem={({ item }) => renderCountdownSection(item.title, item.data)}
         keyExtractor={item => item.key}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
@@ -205,6 +254,18 @@ export default function FolderScreen({ route, navigation }) {
         onClose={() => setShowEditModal(false)}
         countdown={editingCountdown}
       />
+      <FileUploadModal 
+        visible={showFileUploadModal}
+        onClose={() => setShowFileUploadModal(false)}
+        folderId={folderId}
+        folderName={folderName}
+      />
+      <FileListModal 
+        visible={showFileListModal}
+        onClose={() => setShowFileListModal(false)}
+        folderId={folderId}
+        folderName={folderName}
+      />
     </View>
   );
 }
@@ -226,15 +287,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 8,
   },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-  },
-  cardWrapper: {
-    width: '48%',
-    marginBottom: 16,
+  singleColumnContainer: {
+    paddingHorizontal: 16,
   },
   fab: {
     position: 'absolute',
@@ -303,6 +357,52 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  // 文件管理样式
+  headerSection: {
+    marginBottom: 16,
+  },
+  fileSection: {
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  fileSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  fileSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  fileCount: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  fileButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fileButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  fileButtonIcon: {
+    fontSize: 16,
+  },
+  fileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

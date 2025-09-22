@@ -158,15 +158,15 @@ export default function CountdownCard({ countdown, folderColor, onPress, onLongP
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    marginVertical: 4,
-    elevation: 6,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    height: 180, // 增加高度以容纳更多内容
+    borderRadius: 16,
+    marginVertical: 6,
+    marginHorizontal: 0,
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    minHeight: 120,
     overflow: 'hidden',
-    flex: 1,
   },
   completedCard: {
     opacity: 0.6,
@@ -215,11 +215,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     flex: 1,
     marginRight: 12,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   completedText: {
     textDecorationLine: 'line-through',
@@ -243,16 +243,16 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   description: {
-    fontSize: 13,
-    marginBottom: 10,
-    lineHeight: 17,
-    height: 34, // 固定高度，最多显示2行
+    fontSize: 12,
+    marginBottom: 8,
+    lineHeight: 16,
+    maxHeight: 32, // 最多显示2行
   },
   descriptionDark: {
-    fontSize: 13,
-    marginBottom: 10,
-    lineHeight: 17,
-    height: 34, // 固定高度，最多显示2行
+    fontSize: 12,
+    marginBottom: 8,
+    lineHeight: 16,
+    maxHeight: 32, // 最多显示2行
   },
   footer: {
     flexDirection: 'row',

@@ -1,0 +1,367 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
+import { TaskCard } from './TaskCard';
+
+interface Task {
+  id: string;
+  countdown: string;
+  deadline?: string;
+  title: string;
+  description: string;
+  folderColor: string;
+  type: '一次性' | '循环';
+  duration?: string;
+  priority?: 'high' | 'medium' | 'low';
+  category?: string;
+}
+
+type FilterType = 'all' | 'completed' | 'pending' | 'overdue' | 'csc3';
+
+interface CategoryViewProps {
+  category: FilterType;
+  tasks: Task[];
+  onBack: () => void;
+  onTaskClick: (task: Task) => void;
+}
+
+const categoryConfig = {
+  all: {
+    name: '全部任务',
+    description: '查看所有任务和倒计时',
+    icon: 'time-outline' as const,
+    color: '#3B82F6'
+  },
+  completed: {
+    name: '已完成',
+    description: '已经完成的任务记录',
+    icon: 'checkmark-circle-outline' as const,
+    color: '#10B981'
+  },
+  pending: {
+    name: '未完成',
+    description: '正在进行中的任务',
+    icon: 'time-outline' as const,
+    color: '#F59E0B'
+  },
+  overdue: {
+    name: '逾期',
+    description: '已经超过截止时间的任务',
+    icon: 'alert-circle-outline' as const,
+    color: '#EF4444'
+  },
+  csc3: {
+    name: 'CSC3',
+    description: '计算机科学课程相关任务',
+    icon: 'book-outline' as const,
+    color: '#8B5CF6'
+  }
+};
+
+export function CategoryView({ category, tasks, onBack, onTaskClick }: CategoryViewProps) {
+  const { theme } = useTheme();
+  const config = categoryConfig[category];
+
+  // Filter tasks based on category
+  const filteredTasks = category === 'all' 
+    ? tasks 
+    : tasks.filter(task => task.category === category);
+
+  const oneTimeTasks = filteredTasks.filter(task => task.type === '一次性');
+  const recurringTasks = filteredTasks.filter(task => task.type === '循环');
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={
+          theme.id === 'dark' 
+            ? ['#1e293b', '#0a0f1c', '#020617']
+            : theme.id === 'warm'
+            ? ['#E6F3FF', '#F0F8E8', '#FFF8DC', '#F5F5DC', '#F7F3E7']
+            : theme.id === 'morandi'
+            ? ['#F5F2F0', '#ECE8E5', '#E8E4E1', '#E4DFD8', '#DFD9D1']
+            : [theme.colors.background, theme.colors.backgroundSecondary]
+        }
+        style={styles.background}
+      >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backButton}
+          >
+            <Ionicons 
+              name="arrow-back" 
+              size={20} 
+              color={theme.colors.mutedForeground} 
+            />
+            <Text style={[styles.backText, { color: theme.colors.mutedForeground }]}>
+              返回
+            </Text>
+          </TouchableOpacity>
+          
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <View style={styles.content}>
+          {/* Category Header */}
+          <View 
+            style={[
+              styles.categoryHeader,
+              {
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.cardBorder,
+              }
+            ]}
+          >
+            <View style={styles.categoryInfo}>
+              <View 
+                style={[
+                  styles.categoryIcon,
+                  { backgroundColor: config.color }
+                ]}
+              >
+                <Ionicons 
+                  name={config.icon} 
+                  size={32} 
+                  color="white" 
+                />
+              </View>
+              
+              <View style={styles.categoryDetails}>
+                <Text style={[styles.categoryName, { color: theme.colors.foreground }]}>
+                  {config.name}
+                </Text>
+                <Text style={[styles.categoryDesc, { color: theme.colors.mutedForeground }]}>
+                  {config.description}
+                </Text>
+                
+                {/* Task Count */}
+                <View style={styles.taskCounts}>
+                  <Text style={[styles.taskCount, { color: theme.colors.mutedForeground }]}>
+                    {filteredTasks.length} 个任务
+                  </Text>
+                  {oneTimeTasks.length > 0 && (
+                    <View style={styles.taskCountItem}>
+                      <Ionicons 
+                        name="time-outline" 
+                        size={16} 
+                        color={theme.colors.mutedForeground} 
+                      />
+                      <Text style={[styles.taskCount, { color: theme.colors.mutedForeground }]}>
+                        {oneTimeTasks.length} 个一次性
+                      </Text>
+                    </View>
+                  )}
+                  {recurringTasks.length > 0 && (
+                    <View style={styles.taskCountItem}>
+                      <Ionicons 
+                        name="checkmark-circle-outline" 
+                        size={16} 
+                        color={theme.colors.mutedForeground} 
+                      />
+                      <Text style={[styles.taskCount, { color: theme.colors.mutedForeground }]}>
+                        {recurringTasks.length} 个循环
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Tasks List */}
+          {filteredTasks.length === 0 ? (
+            <View 
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.cardBorder,
+                }
+              ]}
+            >
+              <View style={styles.emptyIcon}>
+                <Ionicons 
+                  name={config.icon} 
+                  size={48} 
+                  color={theme.colors.mutedForeground}
+                  style={{ opacity: 0.4 }}
+                />
+              </View>
+              <Text style={[styles.emptyText, { color: theme.colors.mutedForeground }]}>
+                这个分类还没有任务
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.tasksList}>
+              {/* One-time Tasks */}
+              {oneTimeTasks.length > 0 && (
+                <View style={styles.taskSection}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
+                    一次性任务 ({oneTimeTasks.length})
+                  </Text>
+                  <View style={styles.tasksContainer}>
+                    {oneTimeTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        countdown={task.countdown}
+                        deadline={task.deadline}
+                        title={task.title}
+                        description={task.description}
+                        folderColor={task.folderColor}
+                        type={task.type}
+                        duration={task.duration}
+                        onClick={() => onTaskClick(task)}
+                      />
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Recurring Tasks */}
+              {recurringTasks.length > 0 && (
+                <View style={styles.taskSection}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
+                    循环任务 ({recurringTasks.length})
+                  </Text>
+                  <View style={styles.tasksContainer}>
+                    {recurringTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        countdown={task.countdown}
+                        deadline={task.deadline}
+                        title={task.title}
+                        description={task.description}
+                        folderColor={task.folderColor}
+                        type={task.type}
+                        duration={task.duration}
+                        onClick={() => onTaskClick(task)}
+                      />
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  background: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    marginBottom: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backText: {
+    fontSize: 16,
+  },
+  headerSpacer: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 16,
+    gap: 24,
+    paddingBottom: 96,
+  },
+  categoryHeader: {
+    padding: 24,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  categoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    marginBottom: 16,
+  },
+  categoryIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryDetails: {
+    flex: 1,
+  },
+  categoryName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  categoryDesc: {
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  taskCounts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  taskCountItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  taskCount: {
+    fontSize: 14,
+  },
+  emptyState: {
+    padding: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  tasksList: {
+    gap: 24,
+  },
+  taskSection: {
+    gap: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  tasksContainer: {
+    gap: 12,
+  },
+});

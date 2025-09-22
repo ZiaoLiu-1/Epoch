@@ -9,6 +9,8 @@ import FolderItem from '../components/FolderItem';
 import AddCountdownModal from '../components/AddCountdownModal';
 import AddFolderModal from '../components/AddFolderModal';
 import EditCountdownModal from '../components/EditCountdownModal';
+import EditFolderModal from '../components/EditFolderModal';
+import ImportICSModal from '../components/ImportICSModal';
 import { TaskType } from '../types';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -16,16 +18,38 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function HomeScreen({ navigation }) {
   const { theme } = useThemeContext();
   const { t } = useLanguage();
-  const { countdowns, folders, deleteCountdown, toggleCountdownComplete } = useContext(CountdownContext);
+  const { countdowns, folders, deleteCountdown, toggleCountdownComplete, deleteFolder } = useContext(CountdownContext);
   const [showCountdownModal, setShowCountdownModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditFolderModal, setShowEditFolderModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState(null);
+  const [editingFolder, setEditingFolder] = useState(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedCountdowns, setSelectedCountdowns] = useState(new Set());
+  const [isFolderSelectionMode, setIsFolderSelectionMode] = useState(false);
+  const [selectedFolders, setSelectedFolders] = useState(new Set());
+  const [isFilterMode, setIsFilterMode] = useState(false);
+  const [filteredFolders, setFilteredFolders] = useState(new Set());
 
-  const oneTimeCountdowns = countdowns.filter(c => c.type === TaskType.ONE_TIME);
-  const recurringCountdowns = countdowns.filter(c => c.type === TaskType.RECURRING);
+  // 筛选逻辑
+  const getFilteredCountdowns = useCallback((countdownList) => {
+    if (!isFilterMode || filteredFolders.size === 0) {
+      return countdownList;
+    }
+    
+    // 如果选择了"全部"，显示所有任务
+    if (filteredFolders.has('all')) {
+      return countdownList;
+    }
+    
+    // 否则只显示选中文件夹的任务
+    return countdownList.filter(c => filteredFolders.has(c.folder));
+  }, [isFilterMode, filteredFolders]);
+
+  const oneTimeCountdowns = getFilteredCountdowns(countdowns.filter(c => c.type === TaskType.ONE_TIME));
+  const recurringCountdowns = getFilteredCountdowns(countdowns.filter(c => c.type === TaskType.RECURRING));
 
   const handleCountdownPress = useCallback((countdown) => {
     if (isSelectionMode) {
@@ -119,6 +143,146 @@ export default function HomeScreen({ navigation }) {
     return folders.find(f => f.id === folderId)?.color || 'gray';
   }, [folders]);
 
+  const handleFolderLongPress = useCallback((folder) => {
+    if (folder.isSystem) return; // 系统文件夹不能编辑
+    if (isFolderSelectionMode) {
+      toggleFolderSelection(folder.id);
+    } else {
+      setEditingFolder(folder);
+      setShowEditFolderModal(true);
+    }
+  }, [isFolderSelectionMode]);
+
+  const handleFolderPress = useCallback((folder) => {
+    if (isFolderSelectionMode) {
+      toggleFolderSelection(folder.id);
+    } else if (isFilterMode) {
+      toggleFolderFilter(folder.id);
+    } else {
+      navigation.navigate('Folder', { folderId: folder.id, folderName: folder.name });
+    }
+  }, [isFolderSelectionMode, isFilterMode, navigation]);
+
+  const toggleFolderFilter = useCallback((folderId) => {
+    setFilteredFolders(prev => {
+      const newFiltered = new Set(prev);
+      
+      // 如果点击"全部"，清除所有其他筛选
+      if (folderId === 'all') {
+        return new Set(['all']);
+      }
+      
+      // 如果当前有"全部"选中，先移除它
+      if (newFiltered.has('all')) {
+        newFiltered.delete('all');
+      }
+      
+      // 切换当前文件夹
+      if (newFiltered.has(folderId)) {
+        newFiltered.delete(folderId);
+      } else {
+        newFiltered.add(folderId);
+      }
+      
+      return newFiltered;
+    });
+  }, []);
+
+  const startFilterMode = useCallback(() => {
+    setIsFilterMode(true);
+    setFilteredFolders(new Set(['all'])); // 默认选中"全部"
+  }, []);
+
+  const exitFilterMode = useCallback(() => {
+    setIsFilterMode(false);
+    setFilteredFolders(new Set());
+  }, []);
+
+  const toggleFolderSelection = useCallback((folderId) => {
+    setSelectedFolders(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(folderId)) {
+        newSelected.delete(folderId);
+      } else {
+        newSelected.add(folderId);
+      }
+      return newSelected;
+    });
+  }, []);
+
+  const exitFolderSelectionMode = useCallback(() => {
+    setIsFolderSelectionMode(false);
+    setSelectedFolders(new Set());
+  }, []);
+
+  const handleBatchDeleteFolders = useCallback(() => {
+    const foldersToDelete = Array.from(selectedFolders).map(id => 
+      folders.find(f => f.id === id)
+    ).filter(Boolean);
+
+    if (foldersToDelete.length === 0) return;
+
+    const totalTasks = foldersToDelete.reduce((sum, folder) => 
+      sum + countdowns.filter(c => c.folder === folder.id).length, 0
+    );
+
+    if (totalTasks > 0) {
+      Alert.alert(
+        '删除文件夹',
+        `即将删除 ${foldersToDelete.length} 个文件夹，其中包含 ${totalTasks} 个任务。\n\n请选择如何处理这些任务：`,
+        [
+          { text: '取消', style: 'cancel' },
+          { 
+            text: '保留任务', 
+            onPress: () => deleteFoldersWithTaskHandling(foldersToDelete, false)
+          },
+          { 
+            text: '删除任务', 
+            style: 'destructive',
+            onPress: () => deleteFoldersWithTaskHandling(foldersToDelete, true)
+          }
+        ]
+      );
+    } else {
+      Alert.alert(
+        '确认删除',
+        `确定要删除 ${foldersToDelete.length} 个文件夹吗？`,
+        [
+          { text: '取消', style: 'cancel' },
+          { 
+            text: '删除', 
+            style: 'destructive',
+            onPress: () => deleteFoldersWithTaskHandling(foldersToDelete, false)
+          }
+        ]
+      );
+    }
+  }, [selectedFolders, folders, countdowns]);
+
+  const deleteFoldersWithTaskHandling = useCallback((foldersToDelete, deleteTasks) => {
+    try {
+      foldersToDelete.forEach(folder => {
+        if (deleteTasks) {
+          // 删除文件夹内的所有任务
+          const folderTasks = countdowns.filter(c => c.folder === folder.id);
+          folderTasks.forEach(task => deleteCountdown(task.id));
+        }
+        // 删除文件夹（如果不删除任务，deleteFolder会自动处理任务迁移）
+        deleteFolder(folder.id);
+      });
+
+      exitFolderSelectionMode();
+      Alert.alert(
+        '删除成功',
+        `已删除 ${foldersToDelete.length} 个文件夹${deleteTasks ? '及其包含的任务' : '，任务已移动到默认文件夹'}`,
+        [{ text: '确定' }]
+      );
+    } catch (error) {
+      Alert.alert('错误', '删除过程中发生错误');
+      console.error('Batch delete folders error:', error);
+    }
+  }, [countdowns, deleteCountdown, deleteFolder, exitFolderSelectionMode]);
+
   const renderCountdownItem = useCallback(({ item: countdown }) => (
     <CountdownCard 
       countdown={countdown} 
@@ -136,21 +300,20 @@ export default function HomeScreen({ navigation }) {
       <Text style={[styles.subSectionTitle, { color: theme.colors.text }]}>
         {title}
       </Text>
-      <View style={styles.gridContainer}>
-        {data.map((item, index) => (
-          <View key={item.id} style={styles.cardWrapper}>
-            <CountdownCard 
-              countdown={item} 
-              folderColor={getFolderColor(item.folder)}
-              onPress={handleCountdownPress}
-              onLongPress={handleCountdownLongPress}
-              onPanGesture={handlePanGesture}
-              isSelectionMode={isSelectionMode}
-              isSelected={selectedCountdowns.has(item.id)}
-            />
-          </View>
-        ))}
-      </View>
+       <View style={styles.singleColumnContainer}>
+         {data.map((item, index) => (
+           <CountdownCard 
+             key={item.id}
+             countdown={item} 
+             folderColor={getFolderColor(item.folder)}
+             onPress={handleCountdownPress}
+             onLongPress={handleCountdownLongPress}
+             onPanGesture={handlePanGesture}
+             isSelectionMode={isSelectionMode}
+             isSelected={selectedCountdowns.has(item.id)}
+           />
+         ))}
+       </View>
     </View>
   ), [theme.colors.text, getFolderColor, handleCountdownPress, handleCountdownLongPress, handlePanGesture, isSelectionMode, selectedCountdowns]);
 
@@ -187,12 +350,64 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.topBar}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('folders')}</Text>
-          <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
-            onPress={() => setShowFolderModal(true)}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            {!isFolderSelectionMode && !isFilterMode ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.importButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  onPress={() => setShowImportModal(true)}
+                >
+                  <Text style={[styles.importButtonText, { color: theme.colors.text }]}>📅</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => setShowFolderModal(true)}
+                >
+                  <Text style={styles.addButtonText}>+</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  onPress={startFilterMode}
+                >
+                  <Text style={[styles.filterButtonText, { color: theme.colors.text }]}>筛选</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.selectButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  onPress={() => setIsFolderSelectionMode(true)}
+                >
+                  <Text style={[styles.selectButtonText, { color: theme.colors.text }]}>选择</Text>
+                </TouchableOpacity>
+              </>
+            ) : isFilterMode ? (
+              <TouchableOpacity
+                style={[styles.exitFilterButton, { backgroundColor: theme.colors.primary }]}
+                onPress={exitFilterMode}
+              >
+                <Text style={[styles.exitFilterButtonText, { color: '#fff' }]}>退出筛选</Text>
+              </TouchableOpacity>
+            ) : isFolderSelectionMode ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.cancelButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  onPress={exitFolderSelectionMode}
+                >
+                  <Text style={[styles.cancelButtonText, { color: theme.colors.text }]}>取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.deleteButton, 
+                    { backgroundColor: selectedFolders.size > 0 ? '#e11d48' : theme.colors.border }
+                  ]}
+                  onPress={handleBatchDeleteFolders}
+                  disabled={selectedFolders.size === 0}
+                >
+                  <Text style={[styles.deleteButtonText, { color: '#fff' }]}>
+                    删除 ({selectedFolders.size})
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </View>
         </View>
         <TouchableOpacity 
           style={[styles.settingsButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
@@ -202,11 +417,19 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
       <FlatList
-        data={folders.filter(f => !f.isSystem)}
+        data={[
+          { id: 'all', name: '全部', color: 'blue', isAll: true },
+          ...folders.filter(f => !f.isSystem)
+        ]}
         renderItem={({ item }) => (
           <FolderItem 
             folder={item} 
-            onPress={() => navigation.navigate('Folder', { folderId: item.id, folderName: item.name })}
+            onPress={() => handleFolderPress(item)}
+            onLongPress={() => handleFolderLongPress(item)}
+            isSelectionMode={isFolderSelectionMode}
+            isSelected={selectedFolders.has(item.id)}
+            isFilterMode={isFilterMode}
+            isFiltered={filteredFolders.has(item.id)}
           />
         )}
         keyExtractor={item => item.id}
@@ -318,6 +541,18 @@ export default function HomeScreen({ navigation }) {
         onClose={() => setShowEditModal(false)}
         countdown={editingCountdown}
       />
+      <ImportICSModal 
+        visible={showImportModal} 
+        onClose={() => setShowImportModal(false)} 
+      />
+      <EditFolderModal 
+        visible={showEditFolderModal} 
+        onClose={() => {
+          setShowEditFolderModal(false);
+          setEditingFolder(null);
+        }}
+        folder={editingFolder}
+      />
     </View>
   );
 }
@@ -343,6 +578,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   sectionTitle: {
     fontSize: 24,
@@ -399,15 +639,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
   },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
+  singleColumnContainer: {
+    paddingHorizontal: 16,
   },
-  cardWrapper: {
-    width: '48%',
-    marginBottom: 16,
+  importButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  importButtonText: {
+    fontSize: 16,
   },
   addButton: {
     width: 32,
@@ -420,6 +664,54 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  selectButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  selectButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  cancelButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  deleteButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  exitFilterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  exitFilterButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   settingsButton: {
     width: 40,

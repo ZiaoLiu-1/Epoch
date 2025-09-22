@@ -1,0 +1,482 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme, ThemeType } from '../contexts/ThemeContext';
+
+interface SettingsProps {
+  onBack: () => void;
+}
+
+export function Settings({ onBack }: SettingsProps) {
+  const { currentTheme, setTheme, themes } = useTheme();
+  const { theme } = useTheme();
+
+  const handleThemeChange = (themeId: ThemeType) => {
+    setTheme(themeId);
+  };
+
+  const getThemeDescription = (themeId: ThemeType) => {
+    switch (themeId) {
+      case 'dark':
+        return '现代玻璃拟态效果';
+      case 'undraw':
+        return '纯净白色极简风格';
+      case 'warm':
+        return '自然温暖宫崎骏风格';
+      case 'morandi':
+        return '高级莫兰迪色系';
+      default:
+        return '';
+    }
+  };
+
+  const getCurrentThemeDescription = () => {
+    switch (currentTheme) {
+      case 'dark':
+        return '深色玻璃拟态主题采用现代化的玻璃质感设计，配合径向渐变背景和精美的阴影效果，为您提供沉浸式的视觉体验。';
+      case 'undraw':
+        return '白色简约主题采用纯净的白色背景和极简的设计元素，以黑色为主色调，营造清晰干净的视觉体验，专注于内容本身。';
+      case 'warm':
+        return '宫崎骏风格主题采用温暖自然的色彩搭配，仿佛置身于宫崎骏动画中的梦幻世界，天空般的渐变背景配合大地色调，营造童话般的温馨氛围。';
+      case 'morandi':
+        return '莫兰迪色系主题采用意大利艺术家Giorgio Morandi的经典配色理念，以低饱和度的高级灰调为主，营造温柔优雅、宁静舒适的视觉氛围。';
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={
+          theme.id === 'dark' 
+            ? ['#1e293b', '#0a0f1c', '#020617']
+            : theme.id === 'warm'
+            ? ['#E6F3FF', '#F0F8E8', '#FFF8DC', '#F5F5DC', '#F7F3E7']
+            : theme.id === 'morandi'
+            ? ['#F5F2F0', '#ECE8E5', '#E8E4E1', '#E4DFD8', '#DFD9D1']
+            : [theme.colors.background, theme.colors.backgroundSecondary]
+        }
+        style={styles.background}
+      >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backButton}
+          >
+            <Ionicons 
+              name="arrow-back" 
+              size={20} 
+              color={theme.colors.mutedForeground} 
+            />
+            <Text style={[styles.backText, { color: theme.colors.mutedForeground }]}>
+              返回
+            </Text>
+          </TouchableOpacity>
+          
+          <Text style={[styles.headerTitle, { color: theme.colors.foreground }]}>
+            设置
+          </Text>
+          
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <View style={styles.content}>
+          {/* Theme Selection */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons 
+                name="color-palette-outline" 
+                size={20} 
+                color={theme.colors.primary} 
+              />
+              <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
+                主题风格
+              </Text>
+            </View>
+            
+            <View style={styles.themeList}>
+              {Object.values(themes).map((themeOption) => (
+                <TouchableOpacity
+                  key={themeOption.id}
+                  onPress={() => handleThemeChange(themeOption.id)}
+                  style={[
+                    styles.themeOption,
+                    {
+                      backgroundColor: currentTheme === themeOption.id 
+                        ? theme.colors.cardHover 
+                        : theme.colors.card,
+                      borderColor: currentTheme === themeOption.id 
+                        ? theme.colors.primary 
+                        : theme.colors.cardBorder,
+                      borderWidth: currentTheme === themeOption.id ? 2 : 1,
+                    }
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.themeContent}>
+                    <View style={styles.themeInfo}>
+                      {/* Theme Preview */}
+                      <View style={[styles.themePreview, { borderColor: theme.colors.cardBorder }]}>
+                        <LinearGradient
+                          colors={
+                            themeOption.id === 'dark' 
+                              ? ['#1e293b', '#0a0f1c']
+                              : themeOption.id === 'warm'
+                              ? ['#E6F3FF', '#F7F3E7']
+                              : themeOption.id === 'morandi'
+                              ? ['#F5F2F0', '#E8E4E1']
+                              : [themeOption.colors.background, themeOption.colors.backgroundSecondary]
+                          }
+                          style={styles.previewBackground}
+                        />
+                        <View 
+                          style={[
+                            styles.previewCard,
+                            { backgroundColor: themeOption.colors.card }
+                          ]}
+                        />
+                        <View 
+                          style={[
+                            styles.previewDot,
+                            { backgroundColor: themeOption.colors.primary }
+                          ]}
+                        />
+                      </View>
+                      
+                      <View style={styles.themeDetails}>
+                        <Text style={[styles.themeName, { color: theme.colors.foreground }]}>
+                          {themeOption.name}
+                        </Text>
+                        <Text style={[styles.themeDesc, { color: theme.colors.mutedForeground }]}>
+                          {getThemeDescription(themeOption.id)}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {currentTheme === themeOption.id && (
+                      <Ionicons 
+                        name="checkmark" 
+                        size={20} 
+                        color={theme.colors.primary} 
+                      />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Theme Description */}
+          <View 
+            style={[
+              styles.descriptionCard,
+              {
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.cardBorder,
+              }
+            ]}
+          >
+            <Text style={[styles.descriptionTitle, { color: theme.colors.foreground }]}>
+              当前主题特色
+            </Text>
+            <Text style={[styles.descriptionText, { color: theme.colors.mutedForeground }]}>
+              {getCurrentThemeDescription()}
+            </Text>
+          </View>
+
+          {/* Preview Cards */}
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewTitle, { color: theme.colors.foreground }]}>
+              预览效果
+            </Text>
+            
+            {/* Sample Task Card */}
+            <View 
+              style={[
+                styles.previewCard1,
+                {
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.cardBorder,
+                }
+              ]}
+            >
+              <View style={styles.previewTaskContent}>
+                <View style={styles.previewTaskLeft}>
+                  <Text style={[styles.previewCountdown, { color: theme.colors.foreground }]}>
+                    7天 12小时
+                  </Text>
+                  <Text style={[styles.previewDate, { color: theme.colors.mutedForeground }]}>
+                    2025-09-25
+                  </Text>
+                </View>
+                <View style={styles.previewTaskRight}>
+                  <View style={styles.previewTaskHeader}>
+                    <Text style={[styles.previewTaskTitle, { color: theme.colors.foreground }]}>
+                      示例任务标题
+                    </Text>
+                    <View
+                      style={[styles.previewTaskDot, { backgroundColor: theme.colors.primary }]}
+                    />
+                  </View>
+                  <Text style={[styles.previewTaskDesc, { color: theme.colors.mutedForeground }]}>
+                    这是一个示例任务描述，展示当前主题的视觉效果。
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Sample Stats Card */}
+            <View 
+              style={[
+                styles.previewCard2,
+                {
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.cardBorder,
+                }
+              ]}
+            >
+              <View style={styles.previewStatsContent}>
+                <View>
+                  <Text style={[styles.previewStatsLabel, { color: theme.colors.mutedForeground }]}>
+                    进行中任务
+                  </Text>
+                  <Text style={[styles.previewStatsValue, { color: theme.colors.foreground }]}>
+                    8
+                  </Text>
+                </View>
+                <View 
+                  style={[
+                    styles.previewStatsIcon,
+                    { backgroundColor: theme.colors.primary + '20' }
+                  ]}
+                >
+                  <View 
+                    style={[
+                      styles.previewStatsInnerDot,
+                      { backgroundColor: theme.colors.primary }
+                    ]}
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  background: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    marginBottom: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backText: {
+    fontSize: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  headerSpacer: {
+    width: 48,
+  },
+  content: {
+    paddingHorizontal: 16,
+    gap: 24,
+    paddingBottom: 96,
+  },
+  section: {
+    gap: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  themeList: {
+    gap: 12,
+  },
+  themeOption: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  themeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  themeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
+  },
+  themePreview: {
+    position: 'relative',
+    width: 48,
+    height: 32,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  previewBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  previewCard: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 2,
+  },
+  previewDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  themeDetails: {
+    flex: 1,
+  },
+  themeName: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  themeDesc: {
+    fontSize: 14,
+  },
+  descriptionCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  descriptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  previewSection: {
+    gap: 12,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  previewCard1: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  previewTaskContent: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  previewTaskLeft: {
+    width: 80,
+    flexShrink: 0,
+  },
+  previewCountdown: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  previewDate: {
+    fontSize: 12,
+  },
+  previewTaskRight: {
+    flex: 1,
+  },
+  previewTaskHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
+  },
+  previewTaskTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    flex: 1,
+  },
+  previewTaskDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  previewTaskDesc: {
+    fontSize: 14,
+  },
+  previewCard2: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  previewStatsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  previewStatsLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  previewStatsValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  previewStatsIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewStatsInnerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+});
