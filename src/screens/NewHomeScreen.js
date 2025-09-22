@@ -280,7 +280,7 @@ export default function NewHomeScreen({ navigation }) {
           </View>
           
           <View style={styles.content}>
-            <FilterChips 
+            <FilterChips
               tasks={allTasks}
               selectedFilter={currentFilter}
               onFilterChange={(filter) => {
@@ -291,7 +291,7 @@ export default function NewHomeScreen({ navigation }) {
                 }
               }}
             />
-            <StatsCards />
+            <StatsCards tasks={allTasks} />
             
             {filteredOneTimeTasks.length > 0 || filteredRecurringTasks.length > 0 ? (
               <View style={styles.taskSections}>
