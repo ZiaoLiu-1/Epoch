@@ -40,12 +40,12 @@ export default function TestHomeScreen({ navigation }) {
           </View>
           
           <View style={styles.content}>
-            <FilterChips 
+            <FilterChips
               tasks={sampleTasks}
               selectedFilter={currentFilter}
               onFilterChange={setCurrentFilter}
             />
-            <StatsCards />
+            <StatsCards tasks={sampleTasks} />
             
             <Text style={[styles.title, { color: theme.colors.text }]}>
               Test Home Screen

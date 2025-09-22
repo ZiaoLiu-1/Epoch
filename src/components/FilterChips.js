@@ -2,25 +2,68 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useThemeContext } from '../context/ThemeContext';
 
-export default function FilterChips({ tasks = [], selectedFilter, onFilterChange }) {
-  const { theme } = useThemeContext();
-  
-  const getTaskCount = (filter) => {
-    if (filter === 'all') return tasks.length;
-    return tasks.filter(task => task.category === filter).length;
-  };
+const PRIORITY_FILTERS = new Set(['high', 'medium', 'low']);
 
-  const filterOptions = [
-    { id: 'all', label: '全部', count: getTaskCount('all') },
-    { id: 'completed', label: '已完成', count: getTaskCount('completed') },
-    { id: 'pending', label: '未完成', count: getTaskCount('pending') },
-    { id: 'overdue', label: '逾期', count: getTaskCount('overdue') },
-    { id: 'csc3', label: 'CSC3', count: getTaskCount('csc3') }
-  ];
-  
+const DEFAULT_FILTERS = [
+  { id: 'all', label: '全部' },
+  { id: 'completed', label: '已完成' },
+  { id: 'pending', label: '未完成' },
+  { id: 'overdue', label: '逾期' },
+  { id: 'csc3', label: 'CSC3' }
+];
+
+const computeCount = (tasks, filterId) => {
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    return 0;
+  }
+
+  if (filterId === 'all') {
+    return tasks.length;
+  }
+
+  if (filterId === 'overdue') {
+    return tasks.filter(task => {
+      if (task.category === 'overdue') {
+        return true;
+      }
+
+      if (!task.deadline || task.category === 'completed') {
+        return false;
+      }
+
+      const dueDate = new Date(task.deadline);
+      return !Number.isNaN(dueDate.getTime()) && dueDate < new Date();
+    }).length;
+  }
+
+  if (PRIORITY_FILTERS.has(filterId)) {
+    return tasks.filter(task => task.priority === filterId).length;
+  }
+
+  return tasks.filter(task => task.category === filterId).length;
+};
+
+export default function FilterChips({
+  tasks = [],
+  filters,
+  selectedFilter,
+  selected,
+  onFilterChange,
+  onSelect
+}) {
+  const { theme } = useThemeContext();
+
+  const activeFilter = selectedFilter ?? selected ?? 'all';
+  const handleChange = onFilterChange ?? onSelect;
+
+  const filterOptions = (filters && filters.length ? filters : DEFAULT_FILTERS).map(option => ({
+    ...option,
+    count: option.count ?? computeCount(tasks, option.id),
+  }));
+
   return (
-    <ScrollView 
-      horizontal 
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
       style={styles.scrollView}
@@ -28,49 +71,51 @@ export default function FilterChips({ tasks = [], selectedFilter, onFilterChange
       {filterOptions.map((option) => (
         <TouchableOpacity
           key={option.id}
-          onPress={() => onFilterChange(option.id)}
+          onPress={() => handleChange && handleChange(option.id)}
           style={[
             styles.filterChip,
             {
-              backgroundColor: selectedFilter === option.id 
-                ? theme.colors.primary + '20' 
+              backgroundColor: activeFilter === option.id
+                ? theme.colors.primary + '20'
                 : theme.colors.card,
-              borderColor: selectedFilter === option.id 
-                ? theme.colors.primary 
+              borderColor: activeFilter === option.id
+                ? theme.colors.primary
                 : theme.colors.cardBorder || theme.colors.border,
-              borderWidth: selectedFilter === option.id ? 2 : 1,
+              borderWidth: activeFilter === option.id ? 2 : 1,
+              opacity: handleChange ? 1 : 0.6,
             }
           ]}
           activeOpacity={0.7}
+          disabled={!handleChange}
         >
-          <Text 
+          <Text
             style={[
               styles.filterLabel,
               {
-                color: selectedFilter === option.id 
-                  ? theme.colors.primary 
+                color: activeFilter === option.id
+                  ? theme.colors.primary
                   : theme.colors.mutedForeground || theme.colors.text,
               }
             ]}
           >
             {option.label}
           </Text>
-          <View 
+          <View
             style={[
               styles.countBadge,
               {
-                backgroundColor: selectedFilter === option.id 
-                  ? theme.colors.primary + '30' 
+                backgroundColor: activeFilter === option.id
+                  ? theme.colors.primary + '30'
                   : theme.colors.cardBorder || theme.colors.border,
               }
             ]}
           >
-            <Text 
+            <Text
               style={[
                 styles.countText,
                 {
-                  color: selectedFilter === option.id 
-                    ? theme.colors.primary 
+                  color: activeFilter === option.id
+                    ? theme.colors.primary
                     : theme.colors.mutedForeground || theme.colors.text,
                 }
               ]}
