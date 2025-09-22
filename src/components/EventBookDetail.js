@@ -190,8 +190,9 @@ export default function EventBookDetail({
 
       {/* Filter Chips */}
       <FilterChips
-        selected={selectedFilter}
-        onSelect={setSelectedFilter}
+        tasks={tasks}
+        selectedFilter={selectedFilter}
+        onFilterChange={setSelectedFilter}
         filters={[
           { id: 'all', label: currentLanguage === 'zh' ? '全部' : 'All' },
           { id: 'pending', label: currentLanguage === 'zh' ? '进行中' : 'Pending' },

@@ -1,46 +1,100 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext';
 
-const statsData = [
-  {
-    id: 'pending',
-    label: '进行中',
-    value: '8',
-    icon: 'time-outline',
-    trend: '+2',
-    trendUp: true
-  },
-  {
-    id: 'completed',
-    label: '已完成',
-    value: '24',
-    icon: 'checkmark-circle-outline',
-    trend: '+5',
-    trendUp: true
-  },
-  {
-    id: 'overdue',
-    label: '逾期',
-    value: '2',
-    icon: 'alert-circle-outline',
-    trend: '-1',
-    trendUp: false
-  },
-  {
-    id: 'efficiency',
-    label: '效率',
-    value: '92%',
-    icon: 'trending-up-outline',
-    trend: '+8%',
-    trendUp: true
+const getTaskMetrics = (tasks = []) => {
+  if (!Array.isArray(tasks)) {
+    return {
+      total: 0,
+      pending: 0,
+      completed: 0,
+      overdue: 0,
+      efficiency: 0,
+    };
   }
-];
 
-export default function StatsCards() {
+  const now = new Date();
+
+  const metrics = tasks.reduce((acc, task) => {
+    const category = task.category;
+
+    if (category === 'completed') {
+      acc.completed += 1;
+    } else if (category === 'pending') {
+      acc.pending += 1;
+    }
+
+    const isOverdue = (() => {
+      if (category === 'overdue') {
+        return true;
+      }
+      if (!task.deadline || category === 'completed') {
+        return false;
+      }
+      const deadlineDate = new Date(task.deadline);
+      return !Number.isNaN(deadlineDate.getTime()) && deadlineDate < now;
+    })();
+
+    if (isOverdue) {
+      acc.overdue += 1;
+    }
+
+    return acc;
+  }, { pending: 0, completed: 0, overdue: 0 });
+
+  const total = tasks.length;
+  const efficiency = total > 0 ? Math.round((metrics.completed / total) * 100) : 0;
+
+  return {
+    total,
+    pending: metrics.pending,
+    completed: metrics.completed,
+    overdue: metrics.overdue,
+    efficiency,
+  };
+};
+
+export default function StatsCards({ tasks = [] }) {
   const { theme } = useThemeContext();
-  
+
+  const metrics = useMemo(() => getTaskMetrics(tasks), [tasks]);
+
+  const statsData = [
+    {
+      id: 'pending',
+      label: '进行中',
+      value: String(metrics.pending),
+      icon: 'time-outline',
+      trend: metrics.total > 0 ? `+${metrics.pending}` : '+0',
+      trendUp: metrics.pending <= metrics.total / 2,
+    },
+    {
+      id: 'completed',
+      label: '已完成',
+      value: String(metrics.completed),
+      icon: 'checkmark-circle-outline',
+      trend: `+${metrics.completed}`,
+      trendUp: true,
+    },
+    {
+      id: 'overdue',
+      label: '逾期',
+      value: String(metrics.overdue),
+      icon: 'alert-circle-outline',
+      trend: `-${metrics.overdue}`,
+      trendUp: false,
+    },
+    {
+      id: 'efficiency',
+      label: '完成效率',
+      value: `${metrics.efficiency}%`,
+      icon: 'trending-up-outline',
+      trend: metrics.total > 0 ? `+${metrics.efficiency}%` : '+0%',
+      trendUp: metrics.efficiency >= 50,
+    }
+  ];
+
   return (
     <View style={styles.container}>
       {statsData.map((stat) => (
@@ -55,36 +109,36 @@ export default function StatsCards() {
           ]}
         >
           <View style={styles.cardHeader}>
-            <View 
+            <View
               style={[
                 styles.iconContainer,
-                { 
+                {
                   backgroundColor: theme.colors.primary + (theme.dark ? '20' : '10'),
                 }
               ]}
             >
-              <Ionicons 
+              <Ionicons
                 name={stat.icon}
-                size={16} 
+                size={16}
                 color={theme.colors.primary}
               />
             </View>
-            <View 
+            <View
               style={[
                 styles.trendContainer,
                 {
-                  backgroundColor: stat.trendUp 
-                    ? (theme.colors.success || '#10B981') + '20' 
+                  backgroundColor: stat.trendUp
+                    ? (theme.colors.success || '#10B981') + '20'
                     : (theme.colors.destructive || '#EF4444') + '20',
                 }
               ]}
             >
-              <Text 
+              <Text
                 style={[
                   styles.trendText,
                   {
-                    color: stat.trendUp 
-                      ? (theme.colors.success || '#10B981') 
+                    color: stat.trendUp
+                      ? (theme.colors.success || '#10B981')
                       : (theme.colors.destructive || '#EF4444'),
                   }
                 ]}
@@ -93,9 +147,9 @@ export default function StatsCards() {
               </Text>
             </View>
           </View>
-          
+
           <View style={styles.cardContent}>
-            <Text 
+            <Text
               style={[
                 styles.label,
                 { color: theme.colors.mutedForeground || theme.colors.text }
@@ -103,7 +157,7 @@ export default function StatsCards() {
             >
               {stat.label}
             </Text>
-            <Text 
+            <Text
               style={[
                 styles.value,
                 { color: theme.colors.text }
@@ -122,15 +176,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    rowGap: 12,
     marginBottom: 24,
   },
   card: {
-    flex: 1,
-    minWidth: '45%',
+    width: '48%',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
+    marginBottom: 12,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -139,25 +194,27 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   iconContainer: {
-    padding: 8,
-    borderRadius: 12,
+    padding: 10,
+    borderRadius: 16,
   },
   trendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   trendText: {
     fontSize: 12,
+    fontWeight: '600',
   },
   cardContent: {
-    gap: 4,
+    gap: 6,
   },
   label: {
     fontSize: 12,
+    fontWeight: '500',
   },
   value: {
     fontSize: 24,
