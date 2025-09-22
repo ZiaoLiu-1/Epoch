@@ -21,14 +21,14 @@ const scale = (size) => (screenWidth / 375) * size;
 const verticalScale = (size) => (screenHeight / 812) * size;
 const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
 
-export default function EventBooksList({ 
-  onSelectBook, 
-  onCreateBook, 
-  onSettingsClick, 
+export default function EventBooksList({
+  onSelectBook,
+  onCreateBook,
+  onSettingsClick,
   onViewAllTasks,
-  navigation 
+  navigation
 }) {
-  const { theme } = useTheme();
+  const { theme } = useThemeContext();
   const { t, currentLanguage } = useLanguage();
   
   // Create localized event books data
